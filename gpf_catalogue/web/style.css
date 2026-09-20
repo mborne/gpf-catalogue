@@ -419,6 +419,18 @@ figcaption { margin-bottom: 12px; }
 
 .record-body { padding: 0 14px 14px; }
 .record-body .abstract { color: var(--ink-2); margin-bottom: 12px; max-width: 80ch; }
+.abstract > :last-child { margin-bottom: 0; }
+.abstract p { margin: 0 0 9px; }
+.abstract .md-list { margin: 0 0 9px; padding-left: 20px; }
+.abstract .md-list li { margin-bottom: 2px; }
+.abstract .md-heading { color: var(--ink); font-size: 0.9rem; margin: 14px 0 6px; }
+.abstract strong { color: var(--ink); }
+.abstract code {
+  background: var(--bar-track);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.abstract a { overflow-wrap: anywhere; }
 
 .pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px 20px; }
 .pair { font-size: 0.85rem; }

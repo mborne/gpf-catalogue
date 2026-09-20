@@ -122,6 +122,26 @@ rules, and the one in `stats.py` is the one the charts count with.
   **zero** times in the 333 harvested records. Reconstructing the relation from URL or
   title similarity would be a guess wearing the clothes of a fact.
 
+### Abstracts are rendered as Markdown, the links table is not
+
+Abstracts are written in Markdown and the catalogue stores them that way: 94 of the 326
+use `**bold**`, 36 carry a list, 16 a link, 167 contain line breaks. Showing the
+asterisks shows the source's markup instead of its text, so the page renders paragraphs,
+lists, headings, bold, italic, code and links.
+
+It stops there, and it stops at abstracts. Link names and descriptions are left exactly
+as published: 155 of them contain `*` or `_` inside a layer name such as
+`trichls_s_d51_gpkg_07-10-2024_wfs`, which any Markdown renderer would eat.
+
+The renderer also undoes what the source escaped twice — five abstracts read
+`INFO&amp;SOLS` or `&lt; 5 bâtiments` — and turns the stray `<br />` of one record into
+line breaks.
+
+Nothing here builds HTML from catalogue text. Every branch of the renderer creates DOM
+nodes, and anything it does not recognise becomes a text node, so a `<script>` in an
+abstract is displayed rather than run. That is not theoretical: the text comes from a
+third party service over which this project has no control.
+
 ### Links are shown raw
 
 One row per entry the catalogue published — protocol, URL, name, description — sorted by

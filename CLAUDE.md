@@ -113,6 +113,11 @@ corrupts the mirror.
 - **`cit:name` and `cit:description` are both kept.** `name` is the machine readable
   layer (`BDTOPO_V3:batiment`, the WFS `typeName`), `description` is the human label
   ("BD TOPO® V3 batiment"); they differ on 2 212 of the 2 243 entries carrying both.
+- **Markdown is rendered in abstracts only, and never through `innerHTML`.** 94 of the
+  326 abstracts use `**bold**`, so the page renders them; link names and descriptions are
+  left raw because 155 carry `*` or `_` inside a layer name. The renderer builds DOM nodes
+  and turns anything unrecognised into a text node — the text comes from a third party
+  service, so a `<script>` in an abstract must be displayed, not run.
 - **Output is deterministic.** No timestamp in `catalogue.json`, first value wins on every
   ambiguity, stable ordering. Two runs over the same mirror produce identical bytes, which
   is what makes catalogue drift diffable (ROADMAP phase 5). Do not add a `generated` field.

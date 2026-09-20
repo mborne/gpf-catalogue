@@ -189,6 +189,137 @@ function fillFilters(stats) {
   }
 }
 
+// --- markdown ---------------------------------------------------------------
+
+/* Abstracts are written in Markdown — 94 of the 326 use `**bold**`, 36 carry a
+   list, 16 a link — and showing the asterisks is showing the source's markup
+   rather than its text. Only abstracts: link names and descriptions are left
+   alone, because 155 of them contain `*` or `_` inside a layer name such as
+   `trichls_s_d51_gpkg_07-10-2024_wfs`, which any renderer would mangle, and the
+   links table is meant to show the data raw.
+
+   The text comes from a third party service, so nothing here ever builds HTML
+   from it: every branch produces DOM nodes, and anything unrecognised stays a
+   text node. A `<` in an abstract is displayed, never parsed. */
+
+/** The HTML escapes the catalogue leaves behind in its own text. */
+const ENTITIES = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  "#39": "'",
+  nbsp: "\u00a0",
+};
+
+/** Inline constructs, tried in this order: code wins over emphasis, bold over italic. */
+const INLINE =
+  /`([^`]+)`|\*\*([^*]+)\*\*|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|\*([^*\n]+)\*|(https?:\/\/[^\s<>()]+)/g;
+
+/** Undo what the source escaped twice, and turn its stray <br> into line breaks. */
+function normalise(text) {
+  return text
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/&(amp|lt|gt|quot|apos|#39|nbsp);/g, (whole, name) =>
+      name in ENTITIES ? ENTITIES[name] : whole
+    );
+}
+
+/** An external link, built rather than written: only http(s) URLs reach here. */
+function externalLink(href, text) {
+  const anchor = el("a", null, text);
+  anchor.href = href;
+  anchor.rel = "noopener noreferrer";
+  anchor.target = "_blank";
+  return anchor;
+}
+
+/** Turn one line of Markdown into text nodes and the few elements it allows. */
+function inlineNodes(text) {
+  const nodes = [];
+  let last = 0;
+  let match;
+  INLINE.lastIndex = 0;
+  while ((match = INLINE.exec(text)) !== null) {
+    if (match.index > last) {
+      nodes.push(document.createTextNode(text.slice(last, match.index)));
+    }
+    if (match[1] !== undefined) nodes.push(el("code", null, match[1]));
+    else if (match[2] !== undefined) nodes.push(el("strong", null, match[2]));
+    else if (match[3] !== undefined) nodes.push(externalLink(match[4], match[3]));
+    else if (match[5] !== undefined) nodes.push(el("em", null, match[5]));
+    else nodes.push(externalLink(match[6], match[6]));
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) nodes.push(document.createTextNode(text.slice(last)));
+  return nodes;
+}
+
+/**
+ * Render an abstract, as a fragment of paragraphs, lists and headings.
+ *
+ * Blank lines separate blocks, consecutive lines join into one paragraph, and
+ * consecutive bullets into one list — which is what the catalogue writes: BD
+ * TOPO lists its themes as seven ` - ` lines in a row.
+ */
+function renderMarkdown(text) {
+  const fragment = document.createDocumentFragment();
+  let paragraph = [];
+  let list = null;
+  let listTag = null;
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    const block = el("p");
+    block.append(...inlineNodes(paragraph.join(" ")));
+    fragment.appendChild(block);
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (list) fragment.appendChild(list);
+    list = null;
+    listTag = null;
+  };
+
+  for (const raw of normalise(text).split("\n")) {
+    const line = raw.trim();
+    if (!line) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+    const heading = line.match(/^#{1,6}\s+(.*)$/);
+    const bullet = line.match(/^[-*+]\s+(.*)$/);
+    const numbered = line.match(/^\d+[.)]\s+(.*)$/);
+
+    if (heading) {
+      flushParagraph();
+      flushList();
+      const title = el("h4", "md-heading");
+      title.append(...inlineNodes(heading[1]));
+      fragment.appendChild(title);
+    } else if (bullet || numbered) {
+      flushParagraph();
+      const tag = bullet ? "ul" : "ol";
+      if (listTag !== tag) {
+        flushList();
+        list = el(tag, "md-list");
+        listTag = tag;
+      }
+      const item = document.createElement("li");
+      item.append(...inlineNodes((bullet || numbered)[1]));
+      list.appendChild(item);
+    } else {
+      flushList();
+      paragraph.push(line);
+    }
+  }
+  flushParagraph();
+  flushList();
+  return fragment;
+}
+
 /** Order two possibly missing strings, empty last, for a stable table order. */
 function cmp(a, b) {
   return String(a || "\uffff").localeCompare(String(b || "\uffff"));
@@ -274,7 +405,11 @@ function recordCard(record) {
   sources.append(el("span", "badge", "source"), page, xml);
   body.appendChild(sources);
 
-  if (record.abstract) body.appendChild(el("p", "abstract", record.abstract));
+  if (record.abstract) {
+    const abstract = el("div", "abstract");
+    abstract.appendChild(renderMarkdown(record.abstract));
+    body.appendChild(abstract);
+  }
 
   const pairs = el("dl", "pairs");
   pair(pairs, "Producer, as published", record.producer);
