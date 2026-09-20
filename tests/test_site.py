@@ -176,11 +176,25 @@ def test_the_page_loads_its_assets_from_the_site(catalogue, built, tmp_path):
 
     loaded = re.findall(r'<(?:script|link)[^>]*?(?:src|href)="([^"]+)"', page)
     assert loaded, "no asset found, the regex stopped matching the page"
+
+    prefixes = set()
     for target in loaded:
+        # The inline SVG favicon is carried by the page itself; it is not fetched.
+        if target.startswith("data:"):
+            continue
         assert not target.startswith(("http://", "https://", "//")), target
-        referenced = tmp_path / "site" / target.lstrip("/").split("?")[0]
-        if not target.startswith("data:"):
-            assert referenced.is_file(), target
+        # The bundle is built for a deployment prefix — `/` by default,
+        # `/gpf-catalogue/` on Pages — and spells its assets under it, so the
+        # prefix comes off before a file is looked up in the directory the site
+        # actually is. Vite emits every one of them under `assets/`.
+        prefix, separator, name = target.partition("assets/")
+        assert separator, target
+        prefixes.add(prefix)
+        assert (tmp_path / "site" / "assets" / name.split("?")[0]).is_file(), target
+
+    # One prefix for all of them: half a page built for another deployment is a
+    # page that loads nothing.
+    assert len(prefixes) == 1, prefixes
 
 
 def test_the_built_application_declares_every_route(built):
