@@ -157,20 +157,36 @@ rules, and the one in `stats.py` is the one the charts count with.
 `spatialScope` is a field of the pivot model, so the page reads it from the record
 rather than from `recordFacets` — there is no rule to publish, only a code the record
 cites. The chart counts it, `national` 118, `global` 6, `regional` 5,
-`local` 4, `european` 3. The 190 records citing no scope are **left out of the chart**
-rather than bucketed, for the reason the year histogram leaves undated records out: an
-undeclared scope is not a scope, and a bar labelled *undeclared* would be the tallest
-one on a chart about extent.
+`local` 4, `european` 3 — and closes with **Not stated 190**
+([issue #3](https://github.com/mborne/gpf-catalogue/issues/3)).
 
-They remain reachable, because *which records did not say?* is a fair question: the
-facet carries a **Not stated (190)** option next to the five codes, and it filters on
-`spatialScope` being null. The count is `quality.undeclaredSpatialScope`, computed by
-`stats.py` rather than subtracted from the bars by the page.
+That last bar is the complement of the code list, not a value of it, and the chart says
+so by where it puts it: the five codes stay ranked among themselves, then a rule, then
+the records that cite nothing — in a muted italic, below the values it is not one of.
+It keeps the single bar colour, because it is the same records counted the same way; a
+second hue would be one more thing for the chart to explain.
+
+The chart was built without it at first, on the argument that an undeclared scope is not
+a scope and that a bar labelled *undeclared* would be the tallest one on a chart about
+extent. It is the tallest one, and that is the finding: **58 % of the catalogue cites no
+spatial scope at all**. Leaving it out made the chart describe 136 records while looking
+like it described 326, which is the more misleading of the two. The year histogram still
+leaves undated records out, for a reason that does not transfer — its axis is time, and
+*unknown* is not a year; this axis is a code list, and *nothing* is a possible answer.
+
+The count is `quality.undeclaredSpatialScope`, measured by `stats.py` and read from
+`stats.json` — the page does not subtract it from the bars. `bySpatialScope` itself stays
+a list of code list values, so a consumer of `stats.json` never finds *Not stated* mixed
+in with `national`.
+
+The same bar filters: it links to `/records?scope=(not stated)`, the option the facet has
+always carried next to the five codes, which matches on `spatialScope` being null.
 
 On the Records page it is a facet, and a badge next to the resource type on every
 record summary — the question *national product or local data?* is asked while scanning
 the list, not after opening a record. A record citing no scope carries no badge, rather
-than one reading *unknown*, which is the same choice the chart makes.
+than one reading *unknown*: a row of the list is one record, where a bar is a group, and
+*this record did not say* is what the absent badge already means.
 
 The label is not what is counted. 6 records cite `…/SpatialScope/global` under the
 label "National", so the keyword `National` — the most frequent of the catalogue, 123
@@ -303,7 +319,7 @@ real change — the same rule as `catalogue.json`
 |---|---|
 | `source`, `count` | The CSW service, and how many records the figures cover |
 | `byType`, `byTopicCategory`, `byInspireTheme` | Records per value; a record may carry several themes or categories, so these sum to more than `count` |
-| `bySpatialScope` | Records per INSPIRE spatial scope; records citing none are left out |
+| `bySpatialScope` | Records per INSPIRE spatial scope. Code list values only: the records citing none are counted by `quality.undeclaredSpatialScope`, which is what the chart draws its last bar from |
 | `byPublisher`, `byLicenceFamily`, `byYear` | The three derived aggregates above; `byYear` is chronological rather than ranked, and keeps empty years at zero |
 | `recordFacets` | The publisher, licence family and year of each record, in catalogue order |
 | `byLinkType`, `recordsByLinkType` | Links per type, and records offering at least one link of that type. The second is the one to filter on |

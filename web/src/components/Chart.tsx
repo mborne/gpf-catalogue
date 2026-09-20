@@ -36,8 +36,15 @@ export function ChartCard({
   );
 }
 
-/** A counted value, with the label drawn at the bar end when it is not the count. */
-export type Bar = Count & { label?: string };
+/**
+ * A counted value, with the label drawn at the bar end when it is not the count.
+ *
+ * `aside` marks a bar that is not one of the ranked values but their complement —
+ * *how many said nothing*. It keeps the single bar colour, because it is still the
+ * same series counted the same way; what sets it apart is where it sits and how
+ * its label reads, not a second hue the chart would then have to explain.
+ */
+export type Bar = Count & { label?: string; aside?: boolean };
 
 export interface BarChartProps {
   counts: Bar[];
@@ -83,7 +90,11 @@ export function BarChart({
             : `${item.value} — ${fmt(item.count)} ${unit}`;
           const label = <span className="bar-label">{item.value}</span>;
           return (
-            <div className="bar-row" key={item.value} title={title}>
+            <div
+              className={item.aside ? "bar-row aside" : "bar-row"}
+              key={item.value}
+              title={title}
+            >
               {linkTo ? (
                 <Link className="bar-link" to={linkTo(item.value)} title={title}>
                   {label}

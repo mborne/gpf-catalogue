@@ -5,7 +5,7 @@ import type { JSX } from "react";
 import { useCatalogue } from "../catalogue";
 import { BarChart, ChartCard, ColumnChart, TOP_N } from "../components/Chart";
 import { fmt, share } from "../format";
-import { recordsPath } from "../filters";
+import { UNSTATED, recordsPath } from "../filters";
 import { usePageTitle } from "../title";
 
 export function OverviewPage(): JSX.Element {
@@ -107,12 +107,25 @@ export function OverviewPage(): JSX.Element {
 
         <ChartCard
           title="By INSPIRE spatial scope"
-          caption="Cited by 136 of the 326 records, and read from the code they cite rather than from its label — the two disagree on 6 records. The records citing no scope are left out here, and reachable as Not stated on the Records page."
+          caption="Read from the code each record cites rather than from its label — the two disagree on 6 records. Not stated closes the chart: it is the complement of the five codes, not one of them, and it is the largest group."
         >
+          {/* The five codes stay ranked among themselves, and the records citing
+              none close the chart rather than topping it. The count is
+              `quality.undeclaredSpatialScope`, measured by `stats.py` like every
+              other number here — the page does not subtract it from the bars. */}
           <BarChart
-            counts={stats.bySpatialScope}
+            counts={[
+              ...stats.bySpatialScope,
+              {
+                value: "Not stated",
+                count: stats.quality.undeclaredSpatialScope,
+                aside: true,
+              },
+            ]}
             total={stats.count}
-            linkTo={(value) => recordsPath("scope", value)}
+            linkTo={(value) =>
+              recordsPath("scope", value === "Not stated" ? UNSTATED : value)
+            }
           />
         </ChartCard>
 

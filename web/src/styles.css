@@ -290,6 +290,17 @@ figcaption { margin-bottom: 12px; }
   border-radius: 0 4px 4px 0;
 }
 
+/* The complement of a ranked chart — *how many said nothing* — sits below the
+   values it is not one of, separated by the same rule the tables use. Same bar
+   colour: it is the same series, counted the same way. */
+.bar-row.aside {
+  border-top: 1px solid var(--grid);
+  margin-top: 4px;
+  padding-top: 6px;
+}
+
+.bar-row.aside .bar-label { color: var(--muted); font-style: italic; }
+
 .bar-value {
   color: var(--ink);
   font-size: 0.85rem;
