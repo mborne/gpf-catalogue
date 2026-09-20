@@ -467,6 +467,18 @@ figcaption { margin-bottom: 12px; }
 }
 .abstract a { overflow-wrap: anywhere; }
 
+/* A preview the catalogue hosts: capped so a large one cannot push the record
+   page around, and never wider than its column. */
+.thumbnail {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  display: block;
+  margin: 0 0 14px;
+  max-height: 180px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
 .pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px 20px; }
 .pair { font-size: 0.85rem; }
 .pair dt { color: var(--muted); font-size: 0.75rem; }

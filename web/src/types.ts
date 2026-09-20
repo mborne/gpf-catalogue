@@ -37,26 +37,47 @@ export interface Link {
   description: string | null;
 }
 
+/** One zone a record declares, with the name the catalogue gave it. A record
+    covering several territories publishes one of these per territory; their
+    union is `CatalogueRecord.bbox`, which is far coarser. */
+export interface Extent {
+  /** "Guadeloupe", or null on the 167 extents naming nothing. */
+  name: string | null;
+  /** "GLP". */
+  code: string | null;
+  /** "ISO 3166 alpha 3". */
+  codeSpace: string | null;
+  bbox: [number, number, number, number];
+}
+
 export interface CatalogueRecord {
   fileIdentifier: string;
   type: ResourceType;
   title: string | null;
   abstract: string | null;
+  edition: string | null;
   producer: string | null;
   contactEmail: string | null;
   keywords: string[];
   inspireThemes: string[];
   topicCategories: string[];
+  purpose: string | null;
   spatialScope: SpatialScope | null;
+  /** The union of `extents`: a cheap first filter, but a coarse one. */
   bbox: [number, number, number, number] | null;
+  extents: Extent[];
   temporalStart: string | null;
   temporalEnd: string | null;
   created: string | null;
   published: string | null;
   revised: string | null;
+  /** The `MD_MaintenanceFrequencyCode` value as published, `quaterly` included. */
+  updateFrequency: string | null;
+  lineage: string | null;
   licence: string | null;
   accessConstraint: string | null;
   links: Link[];
+  thumbnailUrl: string | null;
   suspectedTest: boolean;
 }
 

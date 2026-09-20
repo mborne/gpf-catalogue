@@ -25,6 +25,7 @@ from urllib.parse import urlsplit
 
 from gpf_catalogue.model import (
     CatalogueRecord,
+    Extent,
     Link,
     LinkType,
     ResourceType,
@@ -145,32 +146,46 @@ def parse_record(xml_bytes: bytes) -> CatalogueRecord:
         # gap is more useful than dropping the record or inventing a title.
         logger.warning("%s: no title", identifier)
 
+    # Anchored on the resource citation on purpose: `cit:edition` also hangs under
+    # every distribution format citation, where `IGNF_BD-TOPO` says "inapplicable"
+    # 9 times against the one edition of the product itself, "3.5".
+    edition = _text(
+        identification.find("mri:citation/cit:CI_Citation/cit:edition", NAMESPACES)
+    )
     abstract = _text(identification.find("mri:abstract", NAMESPACES))
     keywords, inspire_themes = _keywords(identification)
     dates = _dates(identification)
     licence, access_constraint = _constraints(identification)
     start, end = _temporal_extent(identification)
+    # Read once: `bbox` is the union of these, not a second walk of the document.
+    extents = _extents(identification)
 
     return CatalogueRecord(
         file_identifier=identifier,
         type=_resource_type(metadata, identification),
         title=title,
         abstract=abstract,
+        edition=edition,
         producer=_producer(metadata, identification),
         contact_email=_contact_email(metadata, identification),
         keywords=keywords,
         inspire_themes=inspire_themes,
         topic_categories=_topic_categories(identification),
+        purpose=_text(identification.find("mri:purpose", NAMESPACES)),
         spatial_scope=_spatial_scope(identification),
-        bbox=_bbox(identification),
+        bbox=_union_bbox(extents),
+        extents=extents,
         temporal_start=start,
         temporal_end=end,
         created=dates.get("created"),
         published=dates.get("published"),
         revised=dates.get("revised"),
+        update_frequency=_update_frequency(identification),
+        lineage=_lineage(metadata),
         licence=licence,
         access_constraint=access_constraint,
         links=_links(metadata),
+        thumbnail_url=_thumbnail_url(identification),
         suspected_test=_suspected_test(identifier, title, abstract),
     )
 
@@ -332,40 +347,139 @@ def _spatial_scope(identification: ET.Element) -> SpatialScope | None:
     return None
 
 
-def _bbox(identification: ET.Element) -> list[float] | None:
-    """Return the union of every bounding box of the record.
+def _extents(identification: ET.Element) -> list[Extent]:
+    """Return every geographic extent of the record, with the name it carries.
 
-    A record may declare several boxes, e.g. one per delivery zone. Their union is
-    what answers "does this resource cover my area?", which is the question the
-    pivot model exists for.
+    A record covering several territories publishes one `gex:EX_Extent` per
+    territory: `IGNF_BD-TOPO` declares eight, from "France métropolitaine" to
+    "Saint-Martin", each with its own box and its ISO 3166 alpha-3 code. Keeping
+    them apart is the point — their union spans the Atlantic and the Indian Ocean
+    and covers 65 times the area the product actually describes.
+
+    An extent carrying no usable box produces no entry: that is how the 115
+    purely temporal extents of the catalogue ("Dates de publication") stay out,
+    without their label being mistaken for a place.
+
+    Returns:
+        One `Extent` per box, in the order the record publishes them. Empty when
+        the record declares no usable box.
+    """
+    extents: list[Extent] = []
+    for block in identification.iterfind("mri:extent/gex:EX_Extent", NAMESPACES):
+        name = _text(block.find("gex:description", NAMESPACES))
+        code, code_space = _geographic_identifier(block)
+        for box in block.iterfind(
+            "gex:geographicElement/gex:EX_GeographicBoundingBox", NAMESPACES
+        ):
+            values = [
+                _decimal(box.find(f"gex:{side}", NAMESPACES))
+                for side in (
+                    "westBoundLongitude",
+                    "southBoundLatitude",
+                    "eastBoundLongitude",
+                    "northBoundLatitude",
+                )
+            ]
+            if any(value is None for value in values):
+                # A partial box cannot be used without inventing its missing side.
+                logger.debug("skipping incomplete bounding box %r", values)
+                continue
+            extents.append(
+                Extent(name=name, code=code, code_space=code_space, bbox=values)
+            )
+    return extents
+
+
+def _geographic_identifier(block: ET.Element) -> tuple[str | None, str | None]:
+    """Return the `(code, code_space)` a `gex:EX_Extent` names its zone by.
+
+    The code is read from `mcc:code` and its authority from the title of the
+    citation carrying it — "FXX" under "ISO 3166 alpha 3". Both are `None` when
+    the extent publishes no geographic description, which is the case of 167 of
+    the 580 extents of the catalogue.
+    """
+    identifier = block.find(
+        "gex:geographicElement/gex:EX_GeographicDescription/"
+        "gex:geographicIdentifier/mcc:MD_Identifier",
+        NAMESPACES,
+    )
+    if identifier is None:
+        return None, None
+    code = _text(identifier.find("mcc:code", NAMESPACES))
+    code_space = _text(
+        identifier.find("mcc:authority/cit:CI_Citation/cit:title", NAMESPACES)
+    )
+    return code, code_space
+
+
+def _union_bbox(extents: list[Extent]) -> list[float] | None:
+    """Return the union of the boxes of `extents`.
+
+    The union answers "could this resource cover my area?" in one comparison,
+    which is why it is kept as `CatalogueRecord.bbox`. It is deliberately a coarse
+    answer: `ENR_CONSO-ELECTRICITE-COMMUNE` declares four territories whose union
+    is 3 519 times their combined area. `extents` is the precise one.
 
     Returns:
         `[west, south, east, north]` in decimal degrees (GeoJSON order), or `None`
-        when the record declares no usable box.
+        when `extents` is empty.
     """
-    west, south, east, north = [], [], [], []
-    for box in identification.iterfind(".//gex:EX_GeographicBoundingBox", NAMESPACES):
-        values = [
-            _decimal(box.find(f"gex:{name}", NAMESPACES))
-            for name in (
-                "westBoundLongitude",
-                "southBoundLatitude",
-                "eastBoundLongitude",
-                "northBoundLatitude",
-            )
-        ]
-        if any(value is None for value in values):
-            # A partial box cannot be unioned without inventing its missing side.
-            logger.debug("skipping incomplete bounding box %r", values)
-            continue
-        west.append(values[0])
-        south.append(values[1])
-        east.append(values[2])
-        north.append(values[3])
-
-    if not west:
+    if not extents:
         return None
-    return [min(west), min(south), max(east), max(north)]
+    boxes = [extent.bbox for extent in extents]
+    return [
+        min(box[0] for box in boxes),
+        min(box[1] for box in boxes),
+        max(box[2] for box in boxes),
+        max(box[3] for box in boxes),
+    ]
+
+
+def _update_frequency(identification: ET.Element) -> str | None:
+    """Return the maintenance frequency the record publishes, verbatim.
+
+    Read from `@codeListValue`, the code and not its label, like every other code
+    list value of this model. It stays a plain string rather than an enumeration
+    because the catalogue publishes `quaterly` (sic) on one record next to
+    `quarterly` on five others: rejecting or silently repairing the typo would
+    either drop a real record or state something the catalogue did not.
+
+    Returns:
+        The code, e.g. `quarterly` or `notPlanned`, or `None` when absent.
+    """
+    code = identification.find(
+        "mri:resourceMaintenance/mmi:MD_MaintenanceInformation/"
+        "mmi:maintenanceAndUpdateFrequency/mmi:MD_MaintenanceFrequencyCode",
+        NAMESPACES,
+    )
+    if code is None:
+        return None
+    return (code.get("codeListValue") or "").strip() or None
+
+
+def _lineage(metadata: ET.Element) -> str | None:
+    """Return the statement saying how the resource was produced.
+
+    Unlike almost everything else in the model this hangs under `mdb:MD_Metadata`
+    and not under the identification block. 103 records publish the element with
+    no text at all, which `_text` already turns into `None`.
+    """
+    return _text(
+        metadata.find("mdb:resourceLineage/mrl:LI_Lineage/mrl:statement", NAMESPACES)
+    )
+
+
+def _thumbnail_url(identification: ET.Element) -> str | None:
+    """Return the URL of the record's browse graphic, or `None`.
+
+    The file name of a `mcc:MD_BrowseGraphic` is an absolute URL throughout this
+    catalogue. The first one wins, as everywhere else in this parser.
+    """
+    return _text(
+        identification.find(
+            "mri:graphicOverview/mcc:MD_BrowseGraphic/mcc:fileName", NAMESPACES
+        )
+    )
 
 
 def _temporal_extent(identification: ET.Element) -> tuple[str | None, str | None]:
@@ -640,20 +754,26 @@ class ParseReport:
 _REPORTED_FIELDS = (
     "title",
     "abstract",
+    "edition",
     "producer",
     "contact_email",
     "keywords",
     "inspire_themes",
     "topic_categories",
+    "purpose",
     "spatial_scope",
     "bbox",
+    "extents",
     "temporal_start",
     "created",
     "published",
     "revised",
+    "update_frequency",
+    "lineage",
     "licence",
     "access_constraint",
     "links",
+    "thumbnail_url",
 )
 
 

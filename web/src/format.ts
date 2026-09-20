@@ -21,6 +21,7 @@ export function haystackOf(record: {
   abstract: string | null;
   fileIdentifier: string;
   keywords: string[];
+  extents: { name: string | null }[];
   links: { name: string | null; description: string | null }[];
 }): string {
   return [
@@ -28,6 +29,10 @@ export function haystackOf(record: {
     record.abstract,
     record.fileIdentifier,
     ...record.keywords,
+    // The only place a territory is named: "Guadeloupe" appears in an extent, not
+    // in the abstract. `lineage` and `purpose` are deliberately left out — they are
+    // long prose, and a substring match over them answers far more than it should.
+    ...record.extents.map((extent) => extent.name),
     // The layer names and their labels are where a theme is often actually
     // written: BD TOPO never says "batiment" in its abstract, only in its layers.
     ...record.links.flatMap((link) => [link.name, link.description]),

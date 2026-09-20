@@ -5,9 +5,11 @@ scalars, not a tree. It is the format a search index, and ultimately a LLM, cons
 See `docs/model.md` for the rationale and `scripts/export_schema.py` to regenerate the
 JSON schema.
 
-`Link` is the single exception to the "no sub-object" rule: an access endpoint is only
-usable as a `(type, url)` pair, and splitting it into parallel lists would lose which
-name belongs to which URL. See `docs/model.md#why-links-are-objects`.
+`Link` and `Extent` are the two exceptions to the "no sub-object" rule, for the same
+reason: an access endpoint is only usable as a `(type, url)` pair, and a named coverage
+zone is only usable as a `(name, bbox)` pair. Splitting either into parallel lists would
+lose which name belongs to which URL, or which box is "Guadeloupe". See
+`docs/model.md#why-links-are-objects`.
 """
 # Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
@@ -133,6 +135,53 @@ class Link(BaseRecordModel):
     )
 
 
+class Extent(BaseRecordModel):
+    """One geographic extent of a resource, with the name the catalogue gave it.
+
+    A record often declares one extent per territory it covers: `IGNF_BD-TOPO`
+    publishes eight, from "France métropolitaine" to "Saint-Martin", each with its
+    own box and its ISO 3166 alpha-3 code. `CatalogueRecord.bbox` is their union,
+    which for that record spans the Atlantic and the Indian Ocean; this is the
+    detail that says what is actually covered.
+
+    Attributes:
+        name: Label published for the zone, e.g. "Guadeloupe".
+        code: Code identifying the zone, e.g. "GLP".
+        code_space: Title of the authority the code belongs to.
+        bbox: The zone's own box, `[west, south, east, north]` in decimal degrees.
+    """
+
+    name: str | None = Field(
+        default=None,
+        description=(
+            "Label published for this zone, e.g. 'Guadeloupe'. Null when the "
+            "catalogue names the extent without describing it, which is the case "
+            "of 167 of the 580 extents of the catalogue."
+        ),
+    )
+    code: str | None = Field(
+        default=None,
+        description=(
+            "Code identifying the zone, e.g. 'GLP'. Null when the extent carries "
+            "no geographic identifier."
+        ),
+    )
+    code_space: str | None = Field(
+        default=None,
+        description=(
+            "Title of the authority `code` belongs to, e.g. 'ISO 3166 alpha 3'. "
+            "Null when the identifier cites none."
+        ),
+    )
+    bbox: list[float] = Field(
+        description=(
+            "Box of this zone alone, as [west, south, east, north] in decimal "
+            "degrees (WGS 84), in GeoJSON order. An extent whose box is absent or "
+            "half declared is not published at all, rather than completed."
+        )
+    )
+
+
 class CatalogueRecord(BaseRecordModel):
     """A resource of the Géoplateforme catalogue, flattened.
 
@@ -159,6 +208,15 @@ class CatalogueRecord(BaseRecordModel):
     abstract: str | None = Field(
         default=None,
         description="Free text description of the resource, null when it has none.",
+    )
+    edition: str | None = Field(
+        default=None,
+        description=(
+            "Version of the resource as its citation states it, e.g. '3.5' for "
+            "BD TOPO®. Read from the resource citation only: `cit:edition` also "
+            "appears in every distribution format citation, where it says "
+            "'inapplicable'. Null when the citation states none."
+        ),
     )
 
     # --- provenance ----------------------------------------------------------
@@ -195,6 +253,14 @@ class CatalogueRecord(BaseRecordModel):
             "ISO 19115 topic categories (`MD_TopicCategoryCode`), e.g. `environment`."
         ),
     )
+    purpose: str | None = Field(
+        default=None,
+        description=(
+            "What the resource is meant to be used for, as free text. Answers a "
+            "different question from `abstract`, which says what it contains. "
+            "Null when the record states none."
+        ),
+    )
 
     # --- where and when ------------------------------------------------------
     spatial_scope: SpatialScope | None = Field(
@@ -210,8 +276,21 @@ class CatalogueRecord(BaseRecordModel):
         default=None,
         description=(
             "Geographic extent as [west, south, east, north] in decimal degrees "
-            "(WGS 84), in GeoJSON order. The union of every bounding box the record "
-            "declares. Null when the record declares none."
+            "(WGS 84), in GeoJSON order. The union of every box in `extents`, which "
+            "makes it a cheap first filter but a coarse one: a record covering "
+            "mainland France and the overseas territories gets a box reaching from "
+            "the Caribbean to Réunion, up to 3 519 times the area actually covered. "
+            "Read `extents` before concluding that a resource covers a point. Null "
+            "when the record declares no usable box."
+        ),
+    )
+    extents: list[Extent] = Field(
+        default_factory=list,
+        description=(
+            "The boxes the record declares, one entry each, with the name and code "
+            "published for them. An extent carrying no usable box — a purely "
+            "temporal one, for instance — is not listed here. Empty when the record "
+            "declares none."
         ),
     )
     temporal_start: str | None = Field(
@@ -233,6 +312,26 @@ class CatalogueRecord(BaseRecordModel):
     revised: str | None = Field(
         default=None,
         description="Last revision date of the resource, ISO 8601, null when absent.",
+    )
+    update_frequency: str | None = Field(
+        default=None,
+        description=(
+            "How often the resource is updated, as the `MD_MaintenanceFrequencyCode` "
+            "value the record publishes, e.g. 'quarterly' or 'notPlanned'. Kept "
+            "verbatim and not validated against the ISO code list, because the "
+            "catalogue publishes 'quaterly' (sic) on one record and a misspelling is "
+            "not something to repair silently. Null when the record states none."
+        ),
+    )
+
+    # --- how it was made -----------------------------------------------------
+    lineage: str | None = Field(
+        default=None,
+        description=(
+            "How the resource was produced, as free text: sources, methods and the "
+            "accuracy they imply. Null when the record states none, which includes "
+            "the 103 records publishing an empty statement."
+        ),
     )
 
     # --- what may be done with it -------------------------------------------
@@ -258,6 +357,13 @@ class CatalogueRecord(BaseRecordModel):
             "Access endpoints, one per (type, url); the catalogue publishes one "
             "entry per layer, collected into `layers`. Empty when the record "
             "publishes none."
+        ),
+    )
+    thumbnail_url: str | None = Field(
+        default=None,
+        description=(
+            "URL of a preview image of the resource, published as a browse graphic. "
+            "Null when the record carries none."
         ),
     )
 

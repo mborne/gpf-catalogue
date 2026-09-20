@@ -29,9 +29,15 @@ reads both.
 | `type` | `dataset` \| `series` \| `service` | `mdb:metadataScope//mcc:MD_ScopeCode/@codeListValue` | 100 % |
 | `title` | `string` \| `null` | `<identification>/mri:citation/cit:CI_Citation/cit:title` | 99.7 % |
 | `abstract` | `string` \| `null` | `<identification>/mri:abstract` | 100 % |
+| `edition` | `string` \| `null` | `<identification>/mri:citation/cit:CI_Citation/cit:edition` | 42.6 % |
 
 `fileIdentifier` is never read from the `@uuid` attribute, which is empty on some
 records. `type` falls back on the kind of identification block when the scope is absent.
+
+`edition` is read on the **resource** citation and nowhere else. `cit:edition` also hangs
+under every distribution format citation, where it says `inapplicable` or repeats the
+format's own version: `IGNF_BD-TOPO` publishes 695 of them against the one that matters,
+`3.5`. An unanchored path would return whichever came first.
 
 ### Provenance
 
@@ -52,22 +58,28 @@ Responsible parties are read most specific first: the resource point of contact
 | `keywords` | `string[]` | `<identification>/mri:descriptiveKeywords/mri:MD_Keywords/mri:keyword` | 77.0 % |
 | `inspireThemes` | `string[]` | the same, restricted to the GEMET INSPIRE themes thesaurus | 56.4 % |
 | `topicCategories` | `string[]` | `<identification>/mri:topicCategory/mri:MD_TopicCategoryCode` | 93.3 % |
+| `purpose` | `string` \| `null` | `<identification>/mri:purpose` | 39.6 % |
 
 `keywords` is deduplicated and keeps publication order. `inspireThemes` is a subset of
 it, exposed separately because it is a *controlled* vocabulary and therefore usable as a
 search facet, where free keywords are not.
+
+`purpose` says what the resource is *for*, where `abstract` says what it *contains*; the
+two are distinct on every record carrying both.
 
 ### Where and when
 
 | Field | Type | Source in ISO 19115-3 | Coverage |
 |---|---|---|---|
 | `spatialScope` | `global` \| `european` \| `national` \| `regional` \| `local` \| `null` | the `xlink:href` of a `mri:keyword` anchor pointing into the INSPIRE `SpatialScope` code list | 41.7 % |
-| `bbox` | `[west, south, east, north]` \| `null` | `gex:EX_GeographicBoundingBox` | 92.3 % |
+| `bbox` | `[west, south, east, north]` \| `null` | the union of `extents` | 92.3 % |
+| `extents` | `Extent[]` | `<identification>/mri:extent/gex:EX_Extent` | 92.3 % |
 | `temporalStart` | `string` \| `null` | `gex:temporalElement//gml:beginPosition` | 34.0 % |
 | `temporalEnd` | `string` \| `null` | `gex:temporalElement//gml:endPosition` | 33.7 % |
 | `created` | `string` \| `null` | `cit:CI_Date` of type `creation` | 57.1 % |
 | `published` | `string` \| `null` | `cit:CI_Date` of type `publication` | 47.2 % |
 | `revised` | `string` \| `null` | `cit:CI_Date` of type `revision` or `lastUpdate` | 28.8 % |
+| `updateFrequency` | `string` \| `null` | `<identification>/mri:resourceMaintenance/mmi:MD_MaintenanceInformation/mmi:maintenanceAndUpdateFrequency/mmi:MD_MaintenanceFrequencyCode/@codeListValue` | 96.6 % |
 
 `spatialScope` answers *is this a national product or a local one?* — the cheapest
 filter there is, and one a bounding box does not give: 81 records declare the same
@@ -101,14 +113,80 @@ first place.
 The counts, over the 326 records: `national` 118, `global` 6, `regional` 5, `local` 4,
 `european` 3, and 190 records citing nothing at all.
 
+#### Named extents, and why `bbox` is still there
+
 `bbox` is in decimal degrees, WGS 84, **GeoJSON order** — not the ISO order, which lists
-the two longitudes then the two latitudes. A record may declare several boxes, and their
-union is kept: `IGNF_BD-TOPO` covers mainland France and the overseas territories, so its
-box spans `[-63.16, -21.4, 55.85, 51.1]` and includes a lot of ocean. That is the point —
-it answers "could this cover my area?", the cheap filter a search needs, not "does it
-exactly". A box missing one of its four sides is skipped rather than completed.
+the two longitudes then the two latitudes. It is the union of every box the record
+declares, which makes it a one-comparison filter and a coarse one. `extents` is the same
+information undestroyed.
+
+The catalogue publishes one `gex:EX_Extent` per territory, each with its own box and, on
+413 of the 580 boxes, a name and an ISO 3166 alpha-3 code:
+
+```xml
+<mri:extent>
+  <gex:EX_Extent>
+    <gex:description><gco:CharacterString>Guadeloupe</gco:CharacterString></gex:description>
+    <gex:geographicElement>
+      <gex:EX_GeographicBoundingBox>…</gex:EX_GeographicBoundingBox>
+    </gex:geographicElement>
+    <gex:geographicElement>
+      <gex:EX_GeographicDescription>
+        <gex:geographicIdentifier>
+          <mcc:MD_Identifier>
+            <mcc:authority><cit:CI_Citation><cit:title>ISO 3166 alpha 3</cit:title></cit:CI_Citation></mcc:authority>
+            <mcc:code><gco:CharacterString>GLP</gco:CharacterString></mcc:code>
+          </mcc:MD_Identifier>
+        </gex:geographicIdentifier>
+      </gex:EX_GeographicDescription>
+    </gex:geographicElement>
+  </gex:EX_Extent>
+</mri:extent>
+```
+
+`IGNF_BD-TOPO` declares eight of them, from `FXX` to `MAF`. Their union spans
+`[-63.16, -21.4, 55.85, 51.1]`, a box reaching from the Caribbean to Réunion across the
+Atlantic, Africa and the Indian Ocean — **65 times the area the product describes**. 47
+records declare more than one box, and the worst of them,
+`ENR_CONSO-ELECTRICITE-COMMUNE`, has a union **3 519 times** the combined area of its four
+territories. Keeping only the union does not merely lose detail; it states a coverage the
+catalogue never claimed. So both are published: `bbox` to filter cheaply, `extents` to
+answer.
+
+Three rules follow from the shapes actually met:
+
+- **A box missing one of its four sides is skipped**, never completed, and produces no
+  extent either.
+- **An extent carrying no usable box produces no entry.** 115 extents of the catalogue
+  carry a description and no geometry, because they describe a *period*: labelling a
+  resource with the place "Dates de publication" would be worse than saying nothing. The
+  period itself is already in `temporalStart` / `temporalEnd`.
+- **A name is never invented.** 167 of the 580 boxes are published with no description
+  and no identifier; they are listed with `name` and `code` at `null`.
+
+Grouping or dissolving these zones is the consumer's business, as it is for `links`.
+
+`updateFrequency` is the `MD_MaintenanceFrequencyCode` **code**, not its label, like every
+other code list value here — but it is typed `string` rather than an enumeration, because
+one record publishes `quaterly` where ISO says `quarterly`. An enumeration would reject
+that record, and silently correcting the spelling would put in the model something the
+catalogue did not say. The counts: `notPlanned` 83, `unknown` 66, `asNeeded` 54,
+`irregular` 50, `annually` 31, `monthly` 8, `continual` 5, `quarterly` 5, `weekly` 4,
+`biannually` 4, `daily` 3, `completed` 1, `quaterly` 1.
 
 When a date type appears twice, the first wins, so a rerun gives the same answer.
+
+### How it was made
+
+| Field | Type | Source in ISO 19115-3 | Coverage |
+|---|---|---|---|
+| `lineage` | `string` \| `null` | `mdb:resourceLineage/mrl:LI_Lineage/mrl:statement` | 58.6 % |
+
+The one field read outside the identification block: `mdb:resourceLineage` hangs directly
+under `mdb:MD_Metadata`. It is free text saying where the geometry came from and what
+accuracy that implies, which is the answer to "can I trust this for my use" that no other
+field carries. 103 records publish the element with no text at all; those stay `null`
+rather than becoming an empty string.
 
 ### What may be done with it
 
@@ -133,6 +211,7 @@ removed — nothing is invented, and the value becomes readable.
 | Field | Type | Source in ISO 19115-3 | Coverage |
 |---|---|---|---|
 | `links` | `Link[]` | `mdb:distributionInfo/mrd:MD_Distribution//mrd:onLine/cit:CI_OnlineResource` | 98.5 % |
+| `thumbnailUrl` | `string` \| `null` | `<identification>/mri:graphicOverview/mcc:MD_BrowseGraphic/mcc:fileName` | 63.2 % |
 
 A `Link` is `{ "type": …, "url": …, "name": string｜null, "description": string｜null }`,
 with `type` one of `wfs`, `wms`, `wmts`, `tms`, `download`, `capabilities`,
@@ -216,6 +295,7 @@ that judgement to the consumer.
   "type": "service",
   "title": "API Géoplateforme - Calcul altimétrique",
   "abstract": "API Géoplateforme - Calcul altimétrique",
+  "edition": null,
   "producer": "Institut national de l'information géographique et forestière (IGN-F)",
   "contactEmail": "geoplateforme@ign.fr",
   "keywords": [
@@ -224,35 +304,48 @@ that judgement to the consumer.
   ],
   "inspireThemes": [],
   "topicCategories": [],
+  "purpose": "Permet d\u2019obtenir l'altitude d'un ou plusieurs points géographiques et un profil en long.",
   "spatialScope": null,
   "bbox": [-180.0, -90.0, 180.0, 90.0],
+  "extents": [
+    {
+      "name": null,
+      "code": null,
+      "codeSpace": null,
+      "bbox": [-180.0, -90.0, 180.0, 90.0]
+    }
+  ],
   "temporalStart": null,
   "temporalEnd": null,
   "created": null,
   "published": "2023-01-16",
   "revised": null,
+  "updateFrequency": "asNeeded",
+  "lineage": null,
   "licence": "Conditions générales d'utilisation disponibles ici : https://cartes.gouv.fr/cgu",
   "accessConstraint": "No limitations on public access",
   "links": [
     {
       "type": "other",
       "url": "https://data.geopf.fr/altimetrie",
-      "name": null
+      "name": null,
+      "description": "accessPoint"
     }
   ],
+  "thumbnailUrl": "https://data.geopf.fr/annexes/ressources/metadata/thumbnail/GeoPF_Altimetrie.png",
   "suspectedTest": false
 }
 ```
 
-A pivot record is 1.7 KB at the median where the source record is 40 to 200 KB. The tail
-is the records publishing many layers: `IGNF_BD-TOPO` is 39 KB against 201 813 bytes of
-XML, and `IGNF_ADMIN-EXPRESS`, the largest, 58 KB. The whole catalogue, 326 records, is
-1.2 MB of `catalogue.json`.
+A pivot record is 2.7 KB at the median where the source record is 40 to 200 KB. The tail
+is the records publishing many layers: `IGNF_BD-TOPO` is 48 KB against 201 813 bytes of
+XML, and `IGNF_ADMIN-EXPRESS`, the largest, 68 KB. The whole catalogue, 326 records, is
+1.5 MB of `catalogue.json`.
 
 ## Design rules
 
 - **Flat.** A consumer reads a field, it does not walk a tree. Multi-valued fields are
-  lists of strings, not lists of objects — with one exception, below.
+  lists of strings, not lists of objects — with two exceptions, below.
 - **One shape for every resource.** A service and a dataset are the same object with a
   different `type`, rather than two classes. Splitting them would fork every consumer for
   no benefit at this size.
@@ -267,9 +360,10 @@ XML, and `IGNF_ADMIN-EXPRESS`, the largest, 58 KB. The whole catalogue, 326 reco
 - **camelCase in JSON, snake_case in Python.** The JSON keys stay close to the ISO
   vocabulary the metadata already uses.
 
-### Why links are objects
+### Why links and extents are objects
 
-`Link` is the single sub-object of the model, and it earns the exception.
+`Link` and `Extent` are the two sub-objects of the model, and both earn the exception for
+the same reason: their parts are only meaningful together.
 
 An access endpoint is only usable as a `(type, url)` pair: a bare URL does not say
 whether it can be queried as a WFS or merely downloaded, and a bare type is not
@@ -281,6 +375,12 @@ but loses the name too.
 Names are worth keeping: "BD TOPO® EXPRESS" and "BD TOPO® DIFFERENTIEL" are two downloads
 of the same resource, and only their names tell them apart. The shape is also the one a
 consumer is likely to already know, being that of STAC assets and DCAT distributions.
+
+`Extent` is the same argument applied to geography. A zone is only usable as a
+`(name, bbox)` pair: four numbers do not say which territory they outline, and
+"Guadeloupe" is not something a map can draw. Parallel lists — `extentNames: […]`,
+`extentBoxes: […]` — would keep the values and lose the pairing, which is precisely the
+information the flat `bbox` had already destroyed.
 
 ## Extending it
 

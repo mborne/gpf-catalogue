@@ -30,6 +30,16 @@ def test_dataset(dataset):
     assert dataset.abstract == "A sample dataset used by the tests."
 
 
+def test_edition_is_read_from_the_resource_citation_not_from_a_format(dataset):
+    """`cit:edition` hangs under every format citation too, saying something else.
+
+    `IGNF_BD-TOPO` publishes 695 `cit:edition` elements, almost all of them under
+    `mrd:distributionFormat` where they read "inapplicable". Only the one on the
+    resource citation is the edition of the product. The fixture carries both.
+    """
+    assert dataset.edition == "3.5"
+
+
 def test_nested_citation_is_not_the_title(dataset):
     """Thesaurus citations must not be mistaken for the resource title."""
     assert dataset.title != "A thesaurus, not the title"
@@ -128,6 +138,13 @@ def test_spatial_scope_is_read_from_the_code_not_from_its_label(dataset):
     assert "National" not in dataset.inspire_themes
 
 
+def test_purpose_is_kept_beside_the_abstract(dataset):
+    """`mri:purpose` answers what the resource is for, not what it contains."""
+    assert dataset.purpose is not None
+    assert dataset.purpose != dataset.abstract
+    assert dataset.purpose.startswith("Servir de socle")
+
+
 def test_record_without_keywords(sample):
     """An absent list is empty, not null: a consumer can iterate unconditionally."""
     record = parse_record(sample("no-title.xml"))
@@ -156,8 +173,64 @@ def test_bbox_is_the_union_of_every_box(dataset):
 def test_incomplete_bbox_is_ignored(dataset):
     """A box missing a side is skipped rather than completed with a guess."""
     # The fixture carries a box holding only a west bound, at -180. Had it been
-    # used, the union would start there.
+    # used, the union would start there, and it would also produce an extent.
     assert dataset.bbox[0] == -5.2
+    assert all(extent.name != "Zone sans boîte utilisable" for extent in dataset.extents)
+
+
+def test_extents_keep_the_name_of_each_zone(dataset):
+    """The union says the Indian Ocean is covered; the extents say which zones are.
+
+    This is the detail `bbox` destroys: `IGNF_BD-TOPO` declares eight named
+    territories whose union spans from the Caribbean to Réunion, 65 times the
+    area actually described.
+    """
+    named = [(e.name, e.code, e.code_space) for e in dataset.extents if e.name]
+
+    assert named == [
+        ("France métropolitaine", "FXX", "ISO 3166 alpha 3"),
+        ("La Réunion", "REU", "ISO 3166 alpha 3"),
+    ]
+    assert dataset.extents[1].bbox == [55.2, -21.4, 55.9, -20.8]
+
+
+def test_extent_without_a_name_is_kept_with_a_null_name(dataset):
+    """167 of the 580 extents name nothing; a name is never invented for them."""
+    anonymous = [e for e in dataset.extents if e.name is None]
+
+    assert len(anonymous) == 1
+    assert anonymous[0].code is None
+    assert anonymous[0].bbox == [2.0, 48.0, 3.0, 49.0]
+
+
+def test_temporal_extent_is_not_a_geographic_one(dataset):
+    """An extent labelled "Dates de publication" describes a period, not a place.
+
+    115 extents of the catalogue carry a description and no box. Their label must
+    not end up among the zones a resource covers.
+    """
+    assert all(e.name != "Dates de publication" for e in dataset.extents)
+    assert dataset.temporal_start == "2008-03-18"
+
+
+def test_bbox_is_recomputed_from_the_extents(dataset):
+    """`bbox` is exactly the union of what `extents` lists, never a second read."""
+    assert dataset.bbox == [
+        min(e.bbox[0] for e in dataset.extents),
+        min(e.bbox[1] for e in dataset.extents),
+        max(e.bbox[2] for e in dataset.extents),
+        max(e.bbox[3] for e in dataset.extents),
+    ]
+
+
+def test_update_frequency_keeps_the_published_code(dataset):
+    """The code is kept verbatim, misspelling included.
+
+    One record of the live catalogue publishes `quaterly` where the ISO code list
+    says `quarterly`. An enumeration would reject that record; repairing the code
+    would state something the catalogue did not. The fixture carries the typo.
+    """
+    assert dataset.update_frequency == "quaterly"
 
 
 def test_temporal_extent(dataset):
@@ -175,6 +248,27 @@ def test_dates_by_type(dataset):
 def test_first_date_of_a_type_wins(dataset):
     """A type published twice keeps its first value, so the result is stable."""
     assert dataset.created != "1999-01-01"
+
+
+# --- how it was made ---------------------------------------------------------
+
+
+def test_lineage_is_read_under_the_metadata_not_the_identification(dataset):
+    """Lineage is the one field of the model read outside the identification block.
+
+    `mdb:resourceLineage` hangs directly under `mdb:MD_Metadata`.
+    """
+    assert dataset.lineage == "Saisie photogrammétrique, complétée par des levés terrain."
+
+
+def test_empty_lineage_statement_is_null(sample):
+    """An empty statement element is null, not an empty string.
+
+    103 records of the catalogue publish `mrl:statement` with no text at all.
+    """
+    record = parse_record(sample("no-title.xml"))
+
+    assert record.lineage is None
 
 
 # --- what may be done with it -----------------------------------------------
@@ -293,6 +387,11 @@ def test_link_without_url_is_dropped(dataset):
     assert not any(link.name == "A link without a URL" for link in dataset.links)
 
 
+def test_thumbnail_url(dataset):
+    """A browse graphic gives the page something to show for a record."""
+    assert dataset.thumbnail_url == "https://data.geopf.fr/annexes/vignette-sample.jpg"
+
+
 def test_record_without_links(sample):
     record = parse_record(sample("no-title.xml"))
 
@@ -350,6 +449,9 @@ def test_json_uses_iso_field_names(dataset):
     assert payload["inspireThemes"] == ["Hydrographie", "Altitude"]
     assert payload["topicCategories"] == ["inlandWaters", "elevation"]
     assert payload["spatialScope"] == "global"
+    assert payload["updateFrequency"] == "quaterly"
+    assert payload["thumbnailUrl"].endswith("vignette-sample.jpg")
+    assert {"name", "code", "codeSpace", "bbox"} == set(payload["extents"][0])
     assert payload["temporalStart"] == "2008-03-18"
     assert payload["accessConstraint"].startswith("Pas de restriction")
     assert payload["suspectedTest"] is False
@@ -363,20 +465,26 @@ def test_json_has_no_unexpected_field(dataset):
         "type",
         "title",
         "abstract",
+        "edition",
         "producer",
         "contactEmail",
         "keywords",
         "inspireThemes",
         "topicCategories",
+        "purpose",
         "spatialScope",
         "bbox",
+        "extents",
         "temporalStart",
         "temporalEnd",
         "created",
         "published",
         "revised",
+        "updateFrequency",
+        "lineage",
         "licence",
         "accessConstraint",
         "links",
+        "thumbnailUrl",
         "suspectedTest",
     }

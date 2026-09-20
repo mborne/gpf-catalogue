@@ -27,6 +27,11 @@ Prove the whole chain on the smallest model that is still useful.
       failure upstream.
 - [ ] 7 records are published without any identification block. Nothing can be done here
       but report them; they are counted as failures by `scripts/parse.py`.
+- [ ] One record publishes the maintenance frequency `quaterly` (sic). `updateFrequency`
+      keeps it verbatim rather than repairing it, which is why the field is a `str` and
+      not an enumeration.
+- [ ] 103 records publish an empty `mrl:statement`, and 14 an empty `mri:purpose`: the
+      element is there, the text is not. They are read as `null`.
 
 ## Phase 2 — A model worth searching
 
@@ -41,6 +46,15 @@ Add the fields that make a record answerable, still one flat JSON per resource.
 - [x] **Access links** — WFS, WMS, WMTS, TMS, download, capabilities and documentation
       endpoints, typed and kept flat (`mrd:MD_Distribution`, `cit:CI_OnlineResource`)
 - [x] **Spatial and temporal extent** — bounding box union and time period (`gex:EX_Extent`)
+- [x] **Named extents** — `extents`, one entry per `gex:EX_Extent` with the description
+      and the ISO 3166 code the record publishes for it. Added after phase 3, from a
+      reading of the `IGNF_BD-TOPO` XML: the union alone was not merely lossy but wrong,
+      giving `ENR_CONSO-ELECTRICITE-COMMUNE` a box 3 519 times its real coverage. `bbox`
+      stays, recomputed from `extents`, as the cheap first filter
+- [x] **Lineage, purpose, edition, update frequency and thumbnail** — the blocks the
+      catalogue fills widely and the model was dropping: `mrl:LI_Lineage/statement`
+      (191 records), `mri:resourceMaintenance` (315), `mri:graphicOverview` (206),
+      `cit:edition` on the resource citation (139), `mri:purpose` (129)
 - [x] **Dates** — creation, revision, publication (`cit:CI_Date`)
 - [x] **Licence and use constraints** (`mco:MD_LegalConstraints`), split by whether the
       block declares `useConstraints` or `accessConstraints`
@@ -59,8 +73,15 @@ Add the fields that make a record answerable, still one flat JSON per resource.
 
 Answered along the way: how much of a record should be flattened before it stops being a
 pivot model and becomes a copy of ISO. The rule held — a field enters the model when a
-search or a question needs it, not because it exists. `Link` is the one sub-object the
-model allows, and [docs/model.md](docs/model.md#why-links-are-objects) argues why.
+search or a question needs it, not because it exists. `Link` and `Extent` are the two
+sub-objects the model allows, and
+[docs/model.md](docs/model.md#why-links-and-extents-are-objects) argues why.
+
+Still measured and still out, for want of a question that needs them: `mrs:MD_ReferenceSystem`
+(143 records, 344 EPSG codes), `mrd:distributionFormat` (134, 394 entries),
+`mri:spatialResolution` (181), the `xlink:href` of the licence and access anchors (128
+and 154), `mco:useLimitation` (167, mostly "Aucune contrainte"),
+`mri:supplementalInformation` (24) and `mri:credit` (3).
 
 ### What the catalogue does not carry
 
