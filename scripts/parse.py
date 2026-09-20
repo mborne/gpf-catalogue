@@ -10,6 +10,7 @@ Examples:
 # Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import argparse
+from pathlib import Path
 
 from gpf_catalogue.cli import add_common_arguments, configure_logging
 from gpf_catalogue.parse import parse_all
@@ -26,6 +27,11 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     add_common_arguments(parser)
+    parser.add_argument(
+        "--catalogue",
+        type=Path,
+        help="aggregated catalogue (default: catalogue.json beside --data-dir)",
+    )
     args = parser.parse_args()
     configure_logging(args.verbose)
 
@@ -34,7 +40,7 @@ def main() -> int:
             f"{args.data_dir} not found, run 'uv run scripts/harvest.py' first"
         )
 
-    report = parse_all(args.data_dir)
+    report = parse_all(args.data_dir, catalogue_path=args.catalogue)
 
     print("=== Parse summary ===")
     print(f"records     : {report.total}")
@@ -43,6 +49,21 @@ def main() -> int:
         print(f"  {resource_type:<10}: {count}")
     print(f"no title    : {report.missing_title}")
     print(f"no abstract : {report.missing_abstract}")
+
+    if report.written:
+        print("field coverage:")
+        for name, count in sorted(
+            report.coverage.items(), key=lambda item: -item[1]
+        ):
+            share = 100 * count / report.written
+            print(f"  {name:<18}: {count:>4} ({share:5.1f} %)")
+        print("links by type:")
+        for name, count in report.links_by_type.most_common():
+            print(f"  {name:<18}: {count:>4}")
+
+    print(f"suspected tests: {len(report.suspected_tests)}")
+    for identifier in report.suspected_tests:
+        print(f"  - {identifier}")
     print(f"failed      : {len(report.failed)}")
     for name, reason in report.failed:
         print(f"  - {name}: {reason}")

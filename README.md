@@ -39,7 +39,7 @@ uv run scripts/harvest.py               # mirror the whole catalogue (~10 min)
 uv run scripts/parse.py                 # convert it to the pivot model
 ```
 
-Both commands write to `data/csw/`, which is not versioned: it is a rebuildable mirror.
+Both commands write to `data/`, which is not versioned: it is a rebuildable mirror.
 
 ```bash
 cat data/csw/IGNF_BD-TOPO.json
@@ -50,18 +50,32 @@ cat data/csw/IGNF_BD-TOPO.json
   "fileIdentifier": "IGNF_BD-TOPO",
   "type": "series",
   "title": "BD TOPO®",
-  "abstract": "La BD TOPO® version 3.5 contient une description vectorielle 3D (structurée en objets) des éléments du territoire et de ses infrastructures, de précision métrique. [...]"
+  "abstract": "La BD TOPO® version 3.5 contient une description vectorielle 3D (structurée en objets) des éléments du territoire et de ses infrastructures, de précision métrique. [...]",
+  "producer": "INSTITUT NATIONAL DE L'INFORMATION GEOGRAPHIQUE ET FORESTIERE (IGN)",
+  "contactEmail": "contact.geoservices@ign.fr",
+  "inspireThemes": ["Altitude", "Bâtiments", "Hydrographie", "..."],
+  "topicCategories": ["biota", "boundaries", "elevation", "..."],
+  "bbox": [-63.16, -21.4, 55.85, 51.1],
+  "created": "2002-12-15",
+  "revised": "2026-07-31",
+  "licence": "Licence Ouverte / Open License (compatible ODC-BY, CC-BY 2.0)",
+  "links": [
+    { "type": "download", "url": "https://data.geopf.fr/telechargement/resource/BDTOPO", "name": "BD TOPO® V3" },
+    { "type": "wfs", "url": "https://data.geopf.fr/wfs/ows?...", "name": "GetCapabilities - WFS" }
+  ],
+  "suspectedTest": false
 }
 ```
 
-That is 320 bytes where the source record is 201 813.
+Shortened here — the real record is 10 KB where the source is 201 813 bytes. The whole
+catalogue is also written as a single `data/catalogue.json`, 840 KB for 326 records.
 
 ## Pipeline
 
 | Step | Command | Input | Output |
 |---|---|---|---|
 | Harvest | `uv run scripts/harvest.py` | `GetRecords` + `GetRecordById` on `data.geopf.fr/csw` | `data/csw/{name}.xml` |
-| Parse | `uv run scripts/parse.py` | `data/csw/*.xml` | `data/csw/{name}.json` |
+| Parse | `uv run scripts/parse.py` | `data/csw/*.xml` | `data/csw/{name}.json` + `data/catalogue.json` |
 | Export schema | `uv run scripts/export_schema.py` | the model | [`docs/pivot-schema.json`](docs/pivot-schema.json) |
 
 Each command supports `--help`, and `-v` for debug logs. The harvest is **resumable**:
@@ -70,18 +84,36 @@ again. Use `--force` to refresh them.
 
 ## Pivot model
 
-The first version deliberately carries the strict minimum needed to identify and describe
-a resource:
+One flat JSON document per resource: enough to identify it, say what it is about, who
+made it, and how to reach the data.
 
-| Field | Type | Description |
-|---|---|---|
-| `fileIdentifier` | `string` | Stable identifier of the record, as used by the CSW service and by cartes.gouv.fr URLs |
-| `type` | `dataset` \| `series` \| `service` | Kind of resource described |
-| `title` | `string` \| `null` | Human readable name |
-| `abstract` | `string` \| `null` | Free text description |
+| Field | Type | Coverage | Description |
+|---|---|---|---|
+| `fileIdentifier` | `string` | 100 % | Stable identifier, as used by the CSW service and by cartes.gouv.fr URLs |
+| `type` | `dataset` \| `series` \| `service` | 100 % | Kind of resource described |
+| `title` | `string` \| `null` | 99.7 % | Human readable name |
+| `abstract` | `string` \| `null` | 100 % | Free text description |
+| `producer` | `string` \| `null` | 100 % | Organisation responsible for the resource |
+| `contactEmail` | `string` \| `null` | 98.2 % | Contact address of the producer |
+| `keywords` | `string[]` | 77.0 % | Free and controlled keywords, deduplicated |
+| `inspireThemes` | `string[]` | 56.4 % | Keywords from the GEMET INSPIRE thesaurus, usable as a facet |
+| `topicCategories` | `string[]` | 93.3 % | ISO topic categories, e.g. `environment` |
+| `bbox` | `[w, s, e, n]` \| `null` | 92.3 % | Geographic extent, WGS 84, GeoJSON order |
+| `temporalStart` / `temporalEnd` | `string` \| `null` | 34 % | Period covered by the resource |
+| `created` / `published` / `revised` | `string` \| `null` | 57 / 47 / 29 % | Dates of the resource |
+| `licence` | `string` \| `null` | 50.0 % | Licence or use condition, as published |
+| `accessConstraint` | `string` \| `null` | 46.0 % | Limitation on public access |
+| `links` | `Link[]` | 98.5 % | Typed access endpoints, deduplicated |
+| `suspectedTest` | `boolean` | — | The record looks like a test publication |
 
-Producer, contacts, keywords and service links (WFS, WMS, download) come next — see
-[ROADMAP.md](ROADMAP.md) and [docs/model.md](docs/model.md).
+A `Link` is `{ "type", "url", "name" }`, typed `wfs`, `wms`, `wmts`, `tms`, `download`,
+`capabilities`, `documentation` or `other`. The catalogue leaves `cit:protocol` empty on
+85 % of its links, so the type is inferred from the URL when it is missing; and it repeats
+the same endpoint once per layer, so links are deduplicated — `IGNF_ADMIN-EXPRESS`
+publishes 251 links for 16 distinct URLs.
+
+Field by field, with the ISO source and the rules behind each value, see
+[docs/model.md](docs/model.md). What comes next is in [ROADMAP.md](ROADMAP.md).
 
 ## Status and limits
 
@@ -92,9 +124,15 @@ Last full run, 2026-09-20:
 | Records published by the service | 336 |
 | Harvested | 333 |
 | Converted to the pivot model | 326 |
+| Typed access links kept | 1 530 |
+| Records flagged as test publications | 14 |
 
-- **Work in progress** — the model is intentionally incomplete, see [ROADMAP.md](ROADMAP.md).
-- **No index, no MCP server yet** — this repository currently produces data, not a search API.
+- **No index, no MCP server yet** — this repository currently produces data, not a search
+  API. That is [ROADMAP.md](ROADMAP.md) phase 3.
+- **Two planned fields do not exist in the catalogue.** `srv:operatesOn` and
+  `mdb:parentMetadata`, which would say which service serves which dataset, appear in
+  **zero** of the 333 records. The relation cannot be published because the source does
+  not carry it.
 - **3 records cannot be served as ISO 19115-3.** The service answers
   `Error occured while transforming metadata with id '…' using 'mdb-full.xsl'` for
   `IGNF_BD-TRANSPORTS-EXCEPTIONNELS`, `MTECT_CORINE-LAND-COVER` and

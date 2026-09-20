@@ -31,25 +31,48 @@ Prove the whole chain on the smallest model that is still useful.
 
 Add the fields that make a record answerable, still one flat JSON per resource.
 
-- [ ] **Producer and contacts** — organisation name, role, email (`cit:CI_Responsibility`)
-- [ ] **Keywords and topic categories** — including the INSPIRE thesaurus
+- [x] **Producer and contacts** — organisation name and email (`cit:CI_Responsibility`),
+      read most specific first: resource point of contact, then citation, then
+      `mdb:contact`
+- [x] **Keywords and topic categories** — including the INSPIRE thesaurus, exposed
+      separately as `inspireThemes` because it is a controlled vocabulary
       (`mri:descriptiveKeywords`, `mri:topicCategory`)
-- [ ] **Access links** — WFS, WMS, WMTS, TMS and download endpoints
-      (`mrd:MD_Distribution`, `cit:CI_OnlineResource`), typed rather than dumped
-- [ ] **Spatial and temporal extent** — bounding box and time period (`gex:EX_Extent`)
-- [ ] **Dates** — creation, revision, publication (`cit:CI_Date`)
-- [ ] **Licence and use constraints** (`mco:MD_LegalConstraints`)
-- [ ] **Relations** — which service serves which dataset (`srv:operatesOn`, `mdb:parentMetadata`)
-- [ ] Decide what to do with the test records published in the catalogue: keep, flag or drop
-- [ ] Publish the pivot catalogue as a single `catalogue.json`, in addition to one file per record
+- [x] **Access links** — WFS, WMS, WMTS, TMS, download, capabilities and documentation
+      endpoints, typed and deduplicated (`mrd:MD_Distribution`, `cit:CI_OnlineResource`)
+- [x] **Spatial and temporal extent** — bounding box union and time period (`gex:EX_Extent`)
+- [x] **Dates** — creation, revision, publication (`cit:CI_Date`)
+- [x] **Licence and use constraints** (`mco:MD_LegalConstraints`), split by whether the
+      block declares `useConstraints` or `accessConstraints`
+- [x] Test records are **flagged**, not dropped: `suspectedTest` marks 14 of the 326
+      records, and the consumer decides
+- [x] Publish the pivot catalogue as a single `catalogue.json`, in addition to one file
+      per record
+- [ ] ~~**Relations** — which service serves which dataset (`srv:operatesOn`,
+      `mdb:parentMetadata`)~~ — **not possible**, see below
 
-Open question: how much of a record should be flattened before it stops being a pivot model
-and becomes a copy of ISO. The rule so far — a field enters the model when a search or a
-question needs it, not because it exists.
+Answered along the way: how much of a record should be flattened before it stops being a
+pivot model and becomes a copy of ISO. The rule held — a field enters the model when a
+search or a question needs it, not because it exists. `Link` is the one sub-object the
+model allows, and [docs/model.md](docs/model.md#why-links-are-objects) argues why.
+
+### What the catalogue does not carry
+
+Measured over the 333 harvested records, not inferred from the standard:
+
+- **`srv:operatesOn` and `mdb:parentMetadata` appear zero times.** Nothing in the
+  catalogue says which service serves which dataset, so the relation cannot be published.
+  Reconstructing it from URL or title similarity would be a guess wearing the clothes of
+  a fact. Either the producers start filling those elements, or a future phase publishes
+  an explicitly heuristic link, clearly marked as such.
+- **`cit:protocol` is empty on 85 % of the links** (2 203 of 2 584), which is why link
+  typing leans on the URL.
+- **1 054 of 2 584 links are internal repeats**, the same endpoint published once per
+  layer it serves.
 
 ## Phase 3 — Search and MCP
 
-- [ ] Index the pivot catalogue (lexical first, it is only 336 records)
+- [ ] Index the pivot catalogue (lexical first, it is only 326 records), with
+      `inspireThemes`, `topicCategories`, `bbox` and `type` as facets
 - [ ] Evaluate on real questions: *which dataset contains bridges?*, *which service computes
       an elevation?*, *what is available on land use?*
 - [ ] Expose an MCP server: `search_catalogue`, `describe_resource`

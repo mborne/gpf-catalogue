@@ -20,6 +20,13 @@ CIT = "http://standards.iso.org/iso/19115/-3/cit/2.0"
 LAN = "http://standards.iso.org/iso/19115/-3/lan/1.0"
 GCO = "http://standards.iso.org/iso/19115/-3/gco/1.0"
 GCX = "http://standards.iso.org/iso/19115/-3/gcx/1.0"
+MRD = "http://standards.iso.org/iso/19115/-3/mrd/1.0"
+MCO = "http://standards.iso.org/iso/19115/-3/mco/1.0"
+GEX = "http://standards.iso.org/iso/19115/-3/gex/1.0"
+
+# Not ISO 19115-3: the extent uses GML for time, and links may be xlink references.
+GML = "http://www.opengis.net/gml/3.2"
+XLINK = "http://www.w3.org/1999/xlink"
 
 #: Prefix to namespace map, to be passed to `ElementTree.find()` and friends.
 NAMESPACES = {
@@ -34,6 +41,11 @@ NAMESPACES = {
     "lan": LAN,
     "gco": GCO,
     "gcx": GCX,
+    "mrd": MRD,
+    "mco": MCO,
+    "gex": GEX,
+    "gml": GML,
+    "xlink": XLINK,
 }
 
 #: Output schema requested to the CSW service.

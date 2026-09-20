@@ -26,7 +26,7 @@ uvx ruff check .                            # lint (currently clean; ruff is not
 uv run scripts/harvest.py --limit 5         # smoke run against the live CSW service
 uv run scripts/harvest.py                   # mirror the whole catalogue (~10 min)
 uv run scripts/harvest.py --only IGNF_BD-TOPO --force   # refresh one record
-uv run scripts/parse.py                     # data/csw/*.xml -> data/csw/*.json
+uv run scripts/parse.py                     # *.xml -> *.json + data/catalogue.json
 uv run scripts/export_schema.py             # regenerate docs/pivot-schema.json
 ```
 
@@ -44,8 +44,12 @@ part and the pure part never mix:
 
 ```
 CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/csw/{stem}.json
-              harvest.py                                   (CatalogueRecord)
+              harvest.py                                   data/catalogue.json
+                                                           (CatalogueRecord)
 ```
+
+`catalogue.json` is written *beside* `data_dir`, never inside it: a record identified
+`catalogue` would otherwise be written to the same path.
 
 | Module | Role |
 |---|---|
@@ -80,7 +84,18 @@ corrupts the mirror.
   and one failing record is reported rather than aborting a run of several hundred. Parsing,
   by contrast, always rewrites the JSON so it reflects the current parser.
 - **Missing values become `null`, never fabricated.** A title is never derived from an
-  identifier. Anomalies are logged and counted in the run reports instead of being hidden.
+  identifier, a half declared bounding box is never completed, a licence is never guessed.
+  Anomalies are logged and counted in the run reports instead of being hidden.
+- **Link typing leans on the URL, not the protocol.** `cit:protocol` is empty on 85 % of
+  the 2 584 links. A `?REQUEST=GetCapabilities` *query* is the service endpoint itself and
+  must stay typed `wfs`/`wms`/…; only a static `capabilities.xml` file is `capabilities`.
+  Typing the query as a document would hide the endpoint from a consumer asking for the WFS.
+- **Links are deduplicated on `(type, url)`, first occurrence wins.** The catalogue
+  repeats an endpoint once per layer: `IGNF_ADMIN-EXPRESS` publishes 251 links for 16
+  distinct URLs. The first occurrence is the one carrying a name more often than not.
+- **Output is deterministic.** No timestamp in `catalogue.json`, first value wins on every
+  ambiguity, stable ordering. Two runs over the same mirror produce identical bytes, which
+  is what makes catalogue drift diffable (ROADMAP phase 4). Do not add a `generated` field.
 - **`data/` is gitignored** — a rebuildable mirror, not source.
 
 ### Adding a field to the pivot model
@@ -95,17 +110,25 @@ corrupts the mirror.
    both inherit citation and abstract from the same ISO type, so one code path reads both.
 4. Watch out for nested citations — a thesaurus citation must not be mistaken for the resource
    title (there is a test for this). Prefer anchored `find()` paths over `.//`.
-5. Run `uv run scripts/export_schema.py` and update [docs/model.md](docs/model.md).
+5. Run `uv run scripts/export_schema.py` and update [docs/model.md](docs/model.md),
+   including the measured coverage — run the parser, do not estimate it.
+6. Add a shape to `tests/data/dataset.xml` and assert it in `tests/test_parse.py`. That
+   fixture is meant to carry one example of every shape the live catalogue uses.
 
 The rule for what enters the model: *a field enters when a search or a question needs it, not
 because ISO defines it.* The model is lossy by design; the raw XML stays next to it.
 
 ### Tests
 
-`tests/` runs fully offline against four hand-picked samples in `tests/data/` (a dataset, a
-real service record with English translations, a record with no title, a title carried by a
-`gcx:Anchor` with no scope code). The `sample` fixture loads them. New parser behaviour should
-come with a sample covering the shape it handles.
+`tests/` runs fully offline against six hand-picked samples in `tests/data/`: a dataset
+carrying every field of the model, a real service record with English translations, a
+record with no title, a title carried by a `gcx:Anchor` with no scope code, a test record,
+and a real record with a test-looking identifier (`test_openig`, titled "Communes de
+l'Hérault"). The `sample` fixture loads them.
+
+`test_parse.py` covers the pure parser; `test_catalogue.py` covers `parse_all` and the
+aggregate, working in `tmp_path`. `GeoPF_Altimetrie.xml` is a verbatim service response —
+do not edit it, its value is being exactly what the service sent.
 
 ## Conventions
 
@@ -133,5 +156,10 @@ Not bugs in this code — tracked under "Known issues left open" in [ROADMAP.md]
   harvested: `IGNF_BD-TRANSPORTS-EXCEPTIONNELS`, `MTECT_CORINE-LAND-COVER`,
   `fr-662043116-7D3DC709-E1EB-470B-9FD0-8ABF8AAFD8E4`. They exist in the older `gmd` schema.
 - 7 records are published with no identification block at all, so they parse as failures.
+- `srv:operatesOn` and `mdb:parentMetadata` appear **zero** times, so nothing says which
+  service serves which dataset. Do not reconstruct the relation from URL or title
+  similarity and present it as a fact.
+- Some records glue an anchor's `xlink:href` onto its own label. Only an exact trailing
+  repeat is stripped (`_strip_repeated_href`); anything else is kept verbatim.
 - `AnyText` CQL filtering is broken server-side (`UnknownFormatConversionException` on `%`).
 - Test records (`test`, `TEST`, `1`, `lls`, `blba lbla`) are published alongside real ones.
