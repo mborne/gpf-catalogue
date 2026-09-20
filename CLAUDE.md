@@ -69,6 +69,7 @@ CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/c
 | `gpf_catalogue/site.py`, `web/` | Assembly of the static overview site, and its three vanilla HTML/CSS/JS files. No template engine, no CDN, no runtime dependency. |
 | `gpf_catalogue/harvest.py`, `cli.py` | Orchestration and shared argparse/logging helpers. |
 | `scripts/*.py` | Thin CLI wrappers: argparse + call the library + print a summary + exit code. |
+| `.github/workflows/pages.yml` | Harvests, parses and publishes the site on GitHub Pages, weekly and on push. It caches `data/csw` and tolerates the expected non-zero exits, but refuses to publish fewer than 300 records. |
 
 Logic belongs in `gpf_catalogue/`, never in `scripts/`.
 

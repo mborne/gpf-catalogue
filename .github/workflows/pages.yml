@@ -1,0 +1,124 @@
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
+#
+# Builds the overview site and publishes it on GitHub Pages.
+#
+# The site needs `data/catalogue.json`, and `data/` is not versioned — it is a
+# rebuildable mirror, not source. So the workflow harvests the CSW service itself.
+# That costs about ten minutes for 333 records at 0.2 s apart, which is why the
+# mirror is cached between runs: the harvest skips records already on disk, so a
+# run triggered by a code change re-downloads nothing.
+name: Publish the overview site
+
+on:
+  push:
+    branches: [main]
+  # Weekly, so the published catalogue follows the real one. This run re-downloads
+  # every record; see `refresh` below.
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: Re-download every record instead of reusing the cached mirror
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One publication at a time. Queued runs wait rather than race; none is cancelled,
+# because a half finished harvest is worse than a slightly late one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # A scheduled run refreshes the whole mirror; a code change reuses it.
+      HARVEST_ARGS: >-
+        ${{ (github.event_name == 'schedule'
+        || github.event.inputs.refresh == 'true') && '--force' || '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # Cheap, offline, and it decides whether publishing is worth ten minutes of
+      # someone else's production service.
+      - name: Test
+        run: uv run pytest -q
+
+      - name: Lint
+        run: uvx ruff check .
+
+      # A rolling cache: the key never hits, so every run saves a fresh mirror,
+      # and `restore-keys` hands the previous one to the harvest to build on.
+      - name: Restore the harvested mirror
+        uses: actions/cache@v6
+        with:
+          path: data/csw
+          key: csw-mirror-${{ github.run_id }}
+          restore-keys: csw-mirror-
+
+      - name: Harvest
+        # Exit 1 is expected, not a regression: 3 records fail server side ISO
+        # 19115-3 transformation and cannot be harvested at all. The step below
+        # is what decides whether the run produced enough to publish.
+        run: uv run scripts/harvest.py $HARVEST_ARGS || true
+
+      - name: Parse
+        # Exit 1 is expected here too: 7 records are published with no
+        # identification block, so they have neither title nor abstract.
+        run: uv run scripts/parse.py || true
+
+      - name: Refuse to publish a truncated catalogue
+        run: |
+          uv run python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          catalogue = Path("data/catalogue.json")
+          if not catalogue.is_file():
+              sys.exit("no catalogue.json: the harvest produced nothing")
+
+          count = json.loads(catalogue.read_text(encoding="utf-8"))["count"]
+          print(f"{count} records in the pivot catalogue")
+
+          # 326 of the 336 published records convert, measured on 2026-09-20.
+          # Well below that means the harvest was cut short — a truncated site
+          # would quietly misreport the catalogue, which is worse than no update.
+          if count < 300:
+              sys.exit(f"only {count} records, refusing to publish")
+          PY
+
+      - name: Build the site
+        run: uv run scripts/build_site.py
+
+      - uses: actions/configure-pages@v6
+
+      # The site carries catalogue.json and stats.json, so publishing it also
+      # publishes the data: https://<owner>.github.io/<repo>/catalogue.json
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -128,8 +128,20 @@ Field by field, with the ISO source and the rules behind each value, see
 
 ## Overview
 
-A static page over the catalogue — what it holds, which resource matches a need, and
-what the metadata is missing. No server, no runtime dependency, no CDN.
+**<https://mborne.github.io/gpf-catalogue/>** — a static page over the catalogue: what it
+holds, which resource matches a need, and what the metadata is missing. No server, no
+runtime dependency, no CDN.
+
+It is rebuilt weekly by [`.github/workflows/pages.yml`](.github/workflows/pages.yml),
+which harvests the live service, parses it and publishes the result. The page carries
+`catalogue.json` and `stats.json` beside it, so the data is downloadable without cloning
+or re-harvesting:
+
+```bash
+curl -O https://mborne.github.io/gpf-catalogue/catalogue.json
+```
+
+To build it yourself:
 
 ```bash
 uv run scripts/build_site.py
@@ -188,6 +200,7 @@ Last full run, 2026-09-20:
 - [docs/why.md](docs/why.md) — why a LLM cannot be plugged directly into a CSW service.
 - [docs/model.md](docs/model.md) — the pivot model, field by field.
 - [docs/overview.md](docs/overview.md) — the overview site, and every value it derives.
+- [The published site](https://mborne.github.io/gpf-catalogue/) — rebuilt weekly from the live catalogue.
 - [docs/init.md](docs/init.md) — how this repository was bootstrapped.
 - [ROADMAP.md](ROADMAP.md) — what comes next.
 

@@ -117,6 +117,7 @@ themselves and not only in the README, every generated file carries an author li
 | `pyproject.toml`, `.gitignore` | a header comment; `pyproject.toml` also declares PEP 621 `authors` / `maintainers` |
 | [`pivot-schema.json`](pivot-schema.json) | a `$comment` key, since JSON has none — emitted by `scripts/export_schema.py`, so it survives regeneration |
 | HTML, CSS and JavaScript (`gpf_catalogue/web/`) | a comment on the first line, below the doctype for HTML |
+| GitHub Actions workflows (`.github/workflows/*.yml`) | a header comment, above the `name:` key |
 | `tests/data/dataset.xml`, `no-title.xml`, `anchor-no-scope.xml` | an XML comment |
 
 Four files carry none, on purpose:

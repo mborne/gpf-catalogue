@@ -14,7 +14,8 @@ uv run scripts/build_site.py     # assembles site/
 uv run python -m http.server -d site 8000
 ```
 
-Then open <http://localhost:8000>. A plain `file://` open does not work: the page
+Then open <http://localhost:8000>. The published copy, rebuilt weekly from the live
+service, is at <https://mborne.github.io/gpf-catalogue/>. A plain `file://` open does not work: the page
 fetches its two JSON documents, and browsers refuse cross origin `file://` requests.
 
 The site is **static and self contained**: no server, no build step, no runtime

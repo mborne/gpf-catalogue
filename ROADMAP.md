@@ -166,10 +166,15 @@ each rule is written down in [docs/overview.md](docs/overview.md).
 ## Phase 5 — Keep it current
 
 - [ ] Incremental refresh based on the record revision date, rather than a full harvest
-- [ ] CI checking that the pipeline still runs against the live service
+- [x] CI checking that the pipeline still runs against the live service —
+      [`.github/workflows/pages.yml`](.github/workflows/pages.yml) harvests, parses
+      and rebuilds weekly, and refuses to publish a catalogue of fewer than 300
+      records rather than quietly shipping a truncated one
 - [ ] Track catalogue drift: new, removed and modified records between two harvests
-- [ ] Publish the built catalogue and the overview site as release artifacts, so consumers
-      do not each re-harvest and the statistics are readable without cloning
+- [x] Publish the overview site on GitHub Pages —
+      <https://mborne.github.io/gpf-catalogue/>, rebuilt weekly. It carries
+      `catalogue.json` and `stats.json`, so publishing the page publishes the data:
+      consumers do not each re-harvest, and the figures are readable without cloning
 
 ## Deliberately out of scope for now
 
