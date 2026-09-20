@@ -132,6 +132,12 @@ class QualityStats(BaseRecordModel):
     undeclared_access_constraint: int = Field(
         description="Records declaring no limitation on public access."
     )
+    undeclared_spatial_scope: int = Field(
+        description=(
+            "Records citing no INSPIRE spatial scope. Counted here rather than "
+            "subtracted by the page, which offers it as a filter of its own."
+        )
+    )
 
 
 class RecordFacets(BaseRecordModel):
@@ -381,6 +387,7 @@ def compute_stats(
         undeclared_access_constraint=sum(
             1 for record in records if not record.access_constraint
         ),
+        undeclared_spatial_scope=total - sum(by_scope.values()),
     )
 
     return CatalogueStats(

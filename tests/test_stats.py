@@ -275,6 +275,8 @@ def test_quality_counts_what_the_source_is_missing():
     assert quality.undeclared_licence == 1
     assert quality.undeclared_access_constraint == 2
     assert quality.distinct_producers == 1
+    # Neither record cites a scope, and the page filters on that count.
+    assert quality.undeclared_spatial_scope == 2
 
 
 def test_suspected_tests_are_named_and_sorted():

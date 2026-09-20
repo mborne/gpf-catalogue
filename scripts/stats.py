@@ -100,6 +100,7 @@ def main() -> int:
     print(f"  links no descr.   : {quality.links_without_description}")
     print(f"  undeclared licence: {quality.undeclared_licence}")
     print(f"  undeclared access : {quality.undeclared_access_constraint}")
+    print(f"  undeclared scope  : {quality.undeclared_spatial_scope}")
     print(f"  producer spellings: {quality.distinct_producers}")
     print(f"  suspected tests   : {len(quality.suspected_tests)}")
     for identifier in quality.suspected_tests:

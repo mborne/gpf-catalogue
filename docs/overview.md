@@ -112,10 +112,15 @@ rules, and the one in `stats.py` is the one the charts count with.
 `spatialScope` is a field of the pivot model, so the page reads it from the record
 rather than from `recordFacets` — there is no rule to publish, only a code the record
 cites. The chart counts it, `national` 118, `global` 6, `regional` 5,
-`local` 4, `european` 3. The 190 records citing no scope are **left out** rather than
-bucketed, for the reason the year histogram leaves undated records out: an undeclared
-scope is not a scope, and a bar labelled *undeclared* would be the tallest one on a
-chart about extent.
+`local` 4, `european` 3. The 190 records citing no scope are **left out of the chart**
+rather than bucketed, for the reason the year histogram leaves undated records out: an
+undeclared scope is not a scope, and a bar labelled *undeclared* would be the tallest
+one on a chart about extent.
+
+They remain reachable, because *which records did not say?* is a fair question: the
+facet carries a **Not stated (190)** option next to the five codes, and it filters on
+`spatialScope` being null. The count is `quality.undeclaredSpatialScope`, computed by
+`stats.py` rather than subtracted from the bars by the page.
 
 On the Records tab it is a facet, and a badge next to the resource type on every
 record summary — the question *national product or local data?* is asked while scanning
@@ -191,6 +196,7 @@ that they can be acted upon.
 |---|---:|
 | Records declaring no licence | 163 |
 | Records declaring no limitation on public access | 176 |
+| Records citing no INSPIRE spatial scope | 190 |
 | Links carrying neither a name nor a description | 4 of 2 575 |
 | Links carrying no description | 332 of 2 575 |
 | Distinct spellings of `producer` | 134 |

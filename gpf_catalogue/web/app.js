@@ -180,6 +180,11 @@ const FILTERS = [
   ["f-year", "byYear"],
 ];
 
+/* Value of the "not stated" option of the spatial scope filter. The parentheses
+   cannot collide with a code list value, which is a bare lowercase word, and an
+   empty value already means "any". */
+const UNSTATED = "(not stated)";
+
 function fillFilters(stats) {
   for (const [id, key] of FILTERS) {
     const select = document.getElementById(id);
@@ -189,6 +194,18 @@ function fillFilters(stats) {
       select.appendChild(option);
     }
   }
+
+  // Only the spatial scope offers it. *Which records did not say?* is a question
+  // about that facet — 190 of 326 cite nothing — where an unstated publisher or
+  // licence is already visible as its own value. The count comes from `stats.json`
+  // rather than from subtracting the bars here.
+  const unstated = el(
+    "option",
+    null,
+    `Not stated (${fmt(stats.quality.undeclaredSpatialScope)})`
+  );
+  unstated.value = UNSTATED;
+  document.getElementById("f-scope").appendChild(unstated);
 }
 
 // --- markdown ---------------------------------------------------------------
@@ -356,7 +373,8 @@ function matches(record) {
   const theme = document.getElementById("f-theme").value;
   if (theme && !(record.inspireThemes || []).includes(theme)) return false;
   const scope = document.getElementById("f-scope").value;
-  if (scope && record.spatialScope !== scope) return false;
+  if (scope === UNSTATED && record.spatialScope) return false;
+  if (scope && scope !== UNSTATED && record.spatialScope !== scope) return false;
   const link = document.getElementById("f-link").value;
   if (link && !(record.links || []).some((item) => item.type === link)) return false;
   const publisher = document.getElementById("f-publisher").value;
@@ -527,6 +545,7 @@ function renderQuality(stats) {
   const rows = [
     ["Records declaring no licence", quality.undeclaredLicence],
     ["Records declaring no limitation on public access", quality.undeclaredAccessConstraint],
+    ["Records citing no INSPIRE spatial scope", quality.undeclaredSpatialScope],
     ["Links carrying neither a name nor a description", `${fmt(quality.linksWithoutName)} of ${fmt(quality.linksTotal)}`],
     ["Links carrying no description", `${fmt(quality.linksWithoutDescription)} of ${fmt(quality.linksTotal)}`],
     ["Distinct spellings of producer, for far fewer organisations", quality.distinctProducers],
