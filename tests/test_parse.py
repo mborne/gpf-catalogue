@@ -9,7 +9,7 @@ an anchor, and the test records the catalogue publishes next to real ones.
 
 import pytest
 
-from gpf_catalogue.model import LinkType, ResourceType
+from gpf_catalogue.model import LinkType, ResourceType, SpatialScope
 from gpf_catalogue.parse import ParseError, parse_record
 
 
@@ -101,7 +101,7 @@ def test_absent_producer_is_none(sample):
 
 def test_keywords_are_deduplicated_in_publication_order(dataset):
     """A keyword repeated across blocks appears once, at its first position."""
-    assert dataset.keywords == ["Hydrographie", "Altitude", "rivière"]
+    assert dataset.keywords == ["Hydrographie", "Altitude", "rivière", "National"]
 
 
 def test_inspire_themes_are_a_subset_of_keywords(dataset):
@@ -116,6 +116,18 @@ def test_topic_categories(dataset):
     assert dataset.topic_categories == ["inlandWaters", "elevation"]
 
 
+def test_spatial_scope_is_read_from_the_code_not_from_its_label(dataset):
+    """The two disagree: 6 records cite `…/SpatialScope/global` labelled "National".
+
+    The code is the controlled value; the label is free text, and the catalogue
+    spells two codes four ways.
+    """
+    assert dataset.spatial_scope is SpatialScope.GLOBAL
+    # The keyword itself stays in `keywords`, as published, label and all.
+    assert "National" in dataset.keywords
+    assert "National" not in dataset.inspire_themes
+
+
 def test_record_without_keywords(sample):
     """An absent list is empty, not null: a consumer can iterate unconditionally."""
     record = parse_record(sample("no-title.xml"))
@@ -123,6 +135,8 @@ def test_record_without_keywords(sample):
     assert record.keywords == []
     assert record.inspire_themes == []
     assert record.topic_categories == []
+    # An absent scope is null: the catalogue cites one on 136 of its 326 records.
+    assert record.spatial_scope is None
 
 
 # --- where and when ---------------------------------------------------------
@@ -335,6 +349,7 @@ def test_json_uses_iso_field_names(dataset):
     assert payload["contactEmail"] == "contact@example.org"
     assert payload["inspireThemes"] == ["Hydrographie", "Altitude"]
     assert payload["topicCategories"] == ["inlandWaters", "elevation"]
+    assert payload["spatialScope"] == "global"
     assert payload["temporalStart"] == "2008-03-18"
     assert payload["accessConstraint"].startswith("Pas de restriction")
     assert payload["suspectedTest"] is False
@@ -353,6 +368,7 @@ def test_json_has_no_unexpected_field(dataset):
         "keywords",
         "inspireThemes",
         "topicCategories",
+        "spatialScope",
         "bbox",
         "temporalStart",
         "temporalEnd",

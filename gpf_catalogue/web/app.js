@@ -160,6 +160,7 @@ function renderOverview(stats) {
   barChart(document.getElementById("chart-link"), stats.recordsByLinkType, { total: stats.count });
   barChart(document.getElementById("chart-topic"), stats.byTopicCategory, { total: stats.count });
   barChart(document.getElementById("chart-theme"), stats.byInspireTheme, { total: stats.count, limit: TOP_N });
+  barChart(document.getElementById("chart-scope"), stats.bySpatialScope, { total: stats.count });
   barChart(document.getElementById("chart-publisher"), stats.byPublisher, { total: stats.count, limit: TOP_N });
   barChart(document.getElementById("chart-licence"), stats.byLicenceFamily, { total: stats.count });
   columnChart(document.getElementById("chart-year"), stats.byYear);
@@ -172,6 +173,7 @@ const FILTERS = [
   ["f-type", "byType"],
   ["f-topic", "byTopicCategory"],
   ["f-theme", "byInspireTheme"],
+  ["f-scope", "bySpatialScope"],
   ["f-link", "recordsByLinkType"],
   ["f-publisher", "byPublisher"],
   ["f-licence", "byLicenceFamily"],
@@ -353,6 +355,8 @@ function matches(record) {
   if (topic && !(record.topicCategories || []).includes(topic)) return false;
   const theme = document.getElementById("f-theme").value;
   if (theme && !(record.inspireThemes || []).includes(theme)) return false;
+  const scope = document.getElementById("f-scope").value;
+  if (scope && record.spatialScope !== scope) return false;
   const link = document.getElementById("f-link").value;
   if (link && !(record.links || []).some((item) => item.type === link)) return false;
   const publisher = document.getElementById("f-publisher").value;
@@ -424,6 +428,7 @@ function recordCard(record) {
   if (record.temporalStart || record.temporalEnd) {
     pair(pairs, "Covers", `${record.temporalStart || "?"} → ${record.temporalEnd || "?"}`);
   }
+  pair(pairs, "Spatial scope", record.spatialScope);
   if (record.bbox) pair(pairs, "Bounding box (W, S, E, N)", record.bbox.join(", "));
   if ((record.topicCategories || []).length) {
     pair(pairs, "Topic categories", record.topicCategories.join(", "));

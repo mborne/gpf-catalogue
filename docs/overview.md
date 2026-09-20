@@ -35,7 +35,7 @@ data they read, so it can be served from anywhere, including a release artifact
 
 | Tab | Question it answers |
 |---|---|
-| **Overview** | What is in the catalogue: resources by type, by ISO topic category, by INSPIRE theme, by publisher, by licence family, by publication year, and which access protocols are offered. |
+| **Overview** | What is in the catalogue: resources by type, by ISO topic category, by INSPIRE theme, by spatial scope, by publisher, by licence family, by publication year, and which access protocols are offered. |
 | **Records** | Which resource matches a need: full text filtering on title, abstract, identifier, keywords **and layer names**, combined with facets, and one detail panel per record listing every published link, raw. |
 | **Quality** | What the source metadata is missing: coverage of every field of the pivot model, and the anomaly counts below. |
 
@@ -107,13 +107,30 @@ The page reads each record's publisher, licence family and year from `recordFace
 `stats.json` rather than recomputing them. Two implementations of one rule are two
 rules, and the one in `stats.py` is the one the charts count with.
 
+## The spatial scope is read, not derived
+
+`spatialScope` is a field of the pivot model, so the page reads it from the record
+rather than from `recordFacets` — there is no rule to publish, only a code the record
+cites. The chart counts it, `national` 118, `global` 6, `regional` 5,
+`local` 4, `european` 3. The 190 records citing no scope are **left out** rather than
+bucketed, for the reason the year histogram leaves undated records out: an undeclared
+scope is not a scope, and a bar labelled *undeclared* would be the tallest one on a
+chart about extent.
+
+The label is not what is counted. 6 records cite `…/SpatialScope/global` under the
+label "National", so the keyword `National` — the most frequent of the catalogue, 123
+records — and the code `national` — 118 records — are not the same set. See
+[model.md](model.md#where-and-when).
+
 ## What the overview refuses to derive
 
 - **No map, and no territory label built from `bbox`.** The boxes are real, but they
   barely discriminate: `(-5.15, 41.32, 9.57, 51.1)` is declared by 81 records and
   `(-180, -90, 180, 90)` by 24, out of 139 distinct boxes. Binning them into
-  *métropole / outre-mer / monde* would publish a classification no producer made. A
-  spatial filter belongs to phase 4, where it can be a real geometric test.
+  *métropole / outre-mer / monde* would publish a classification no producer made —
+  where `spatialScope` is a classification the producers *did* make, which is why it is
+  counted and a box is not. A spatial filter belongs to phase 4, where it can be a real
+  geometric test.
 - **No keyword facet.** 638 distinct keywords for 1 749 occurrences, 432 of them used
   once, and the two most frequent — `National` (123) and `données ouvertes` (112) —
   separate nothing. Keywords are searched, and only those shared by at least 5 records
@@ -199,6 +216,7 @@ real change — the same rule as `catalogue.json`
 |---|---|
 | `source`, `count` | The CSW service, and how many records the figures cover |
 | `byType`, `byTopicCategory`, `byInspireTheme` | Records per value; a record may carry several themes or categories, so these sum to more than `count` |
+| `bySpatialScope` | Records per INSPIRE spatial scope; records citing none are left out |
 | `byPublisher`, `byLicenceFamily`, `byYear` | The three derived aggregates above; `byYear` is chronological rather than ranked, and keeps empty years at zero |
 | `recordFacets` | The publisher, licence family and year of each record, in catalogue order |
 | `byLinkType`, `recordsByLinkType` | Links per type, and records offering at least one link of that type. The second is the one to filter on |

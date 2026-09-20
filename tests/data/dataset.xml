@@ -147,6 +147,22 @@
             </mri:thesaurusName>
           </mri:MD_Keywords>
         </mri:descriptiveKeywords>
+        <!-- The INSPIRE spatial scope, published exactly as 6 records of the
+             catalogue do: the code says global, the label says "National". -->
+        <mri:descriptiveKeywords>
+          <mri:MD_Keywords>
+            <mri:keyword>
+              <gcx:Anchor xlink:href="http://inspire.ec.europa.eu/metadata-codelist/SpatialScope/global">National</gcx:Anchor>
+            </mri:keyword>
+            <mri:thesaurusName>
+              <cit:CI_Citation>
+                <cit:title>
+                  <gcx:Anchor xlink:href="http://inspire.ec.europa.eu/metadata-codelist/SpatialScope">INSPIRE Spatial Scope</gcx:Anchor>
+                </cit:title>
+              </cit:CI_Citation>
+            </mri:thesaurusName>
+          </mri:MD_Keywords>
+        </mri:descriptiveKeywords>
         <mri:topicCategory>
           <mri:MD_TopicCategoryCode>inlandWaters</mri:MD_TopicCategoryCode>
         </mri:topicCategory>

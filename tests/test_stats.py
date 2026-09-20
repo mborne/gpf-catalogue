@@ -11,7 +11,13 @@ import json
 
 import pytest
 
-from gpf_catalogue.model import CatalogueRecord, Link, LinkType, ResourceType
+from gpf_catalogue.model import (
+    CatalogueRecord,
+    Link,
+    LinkType,
+    ResourceType,
+    SpatialScope,
+)
 from gpf_catalogue.parse import write_catalogue
 from gpf_catalogue.stats import (
     OTHER_LICENCE,
@@ -61,6 +67,24 @@ def test_a_record_counts_once_per_value_it_repeats():
     stats = compute_stats([record(inspire_themes=["Altitude", "Altitude"])])
 
     assert values(stats.by_inspire_theme) == [("Altitude", 1)]
+
+
+def test_records_citing_no_spatial_scope_are_left_out():
+    """An undeclared scope is not a scope, and 190 of the 326 records cite none.
+
+    A bucket labelled *undeclared* would be the tallest bar of the chart and would
+    say nothing about the extent of anything.
+    """
+    stats = compute_stats(
+        [
+            record("a", spatial_scope=SpatialScope.NATIONAL),
+            record("b", spatial_scope=SpatialScope.LOCAL),
+            record("c", spatial_scope=SpatialScope.NATIONAL),
+            record("d"),
+        ]
+    )
+
+    assert values(stats.by_spatial_scope) == [("national", 2), ("local", 1)]
 
 
 def test_years_are_chronological_not_ranked():

@@ -34,6 +34,32 @@ class ResourceType(StrEnum):
     """A web service, e.g. the altimetry computation API."""
 
 
+class SpatialScope(StrEnum):
+    """Extent a resource is meant to describe, from the INSPIRE code list.
+
+    Values are the last segment of the code list URI
+    `http://inspire.ec.europa.eu/metadata-codelist/SpatialScope`, which the
+    catalogue publishes as the `xlink:href` of a keyword anchor. They answer
+    "is this a national product or a local one?", which is the cheapest filter
+    a search can apply before looking at a bounding box.
+    """
+
+    GLOBAL = "global"
+    """Worldwide coverage."""
+
+    EUROPEAN = "european"
+    """Coverage of Europe, or of the European Union."""
+
+    NATIONAL = "national"
+    """Coverage of the country, here France and its overseas territories."""
+
+    REGIONAL = "regional"
+    """Coverage of a region, a department or a comparable subdivision."""
+
+    LOCAL = "local"
+    """Coverage of a municipality or a smaller area."""
+
+
 class LinkType(StrEnum):
     """What a link leads to.
 
@@ -171,6 +197,15 @@ class CatalogueRecord(BaseRecordModel):
     )
 
     # --- where and when ------------------------------------------------------
+    spatial_scope: SpatialScope | None = Field(
+        default=None,
+        description=(
+            "Extent the resource is meant to describe, from the INSPIRE "
+            "`SpatialScope` code list, read from the code the record cites and not "
+            "from its label. Null when the record cites none, which is the "
+            "majority of the catalogue."
+        ),
+    )
     bbox: list[float] | None = Field(
         default=None,
         description=(

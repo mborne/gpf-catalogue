@@ -113,6 +113,10 @@ corrupts the mirror.
 - **`cit:name` and `cit:description` are both kept.** `name` is the machine readable
   layer (`BDTOPO_V3:batiment`, the WFS `typeName`), `description` is the human label
   ("BD TOPO® V3 batiment"); they differ on 2 212 of the 2 243 entries carrying both.
+- **A code list value is read from its code, never from its label.** `spatialScope`
+  comes from the `xlink:href` of the keyword anchor, because 6 records cite
+  `.../SpatialScope/global` under the label "National", and the labels spell two codes
+  four ways. The keyword itself stays in `keywords` as published, label and all.
 - **Markdown is rendered in abstracts only, and never through `innerHTML`.** 94 of the
   326 abstracts use `**bold**`, so the page renders them; link names and descriptions are
   left raw because 155 carry `*` or `_` inside a layer name. The renderer builds DOM nodes

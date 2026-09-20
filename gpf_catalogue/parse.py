@@ -23,7 +23,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from gpf_catalogue.model import CatalogueRecord, Link, LinkType, ResourceType
+from gpf_catalogue.model import (
+    CatalogueRecord,
+    Link,
+    LinkType,
+    ResourceType,
+    SpatialScope,
+)
 from gpf_catalogue.namespaces import NAMESPACES
 from gpf_catalogue.storage import json_path, stem_of
 
@@ -38,6 +44,12 @@ _IDENTIFICATION_PATHS = (
 #: Thesaurus titles whose keywords are INSPIRE themes. The catalogue spells the
 #: same thesaurus in several ways, hence a normalized comparison.
 _INSPIRE_THESAURI = ("gemet - inspire themes", "gemet inspire themes")
+
+#: Code list the INSPIRE spatial scope keywords are taken from. The catalogue cites
+#: it as the `xlink:href` of the keyword anchor itself, so the code is read from the
+#: keyword and the thesaurus block never has to be matched — which is just as well,
+#: since its title is spelled both "INSPIRE Spatial Scope" and "INSPIRE Spatial scope".
+_SPATIAL_SCOPE_CODELIST = "http://inspire.ec.europa.eu/metadata-codelist/SpatialScope/"
 
 #: `cit:protocol` values met in the catalogue, normalized to a link type. Only 15 %
 #: of the links carry a protocol at all; the rest are typed from their URL.
@@ -149,6 +161,7 @@ def parse_record(xml_bytes: bytes) -> CatalogueRecord:
         keywords=keywords,
         inspire_themes=inspire_themes,
         topic_categories=_topic_categories(identification),
+        spatial_scope=_spatial_scope(identification),
         bbox=_bbox(identification),
         temporal_start=start,
         temporal_end=end,
@@ -288,6 +301,35 @@ def _topic_categories(identification: ET.Element) -> list[str]:
         if value:
             categories[value] = None
     return list(categories)
+
+
+def _spatial_scope(identification: ET.Element) -> SpatialScope | None:
+    """Return the INSPIRE spatial scope cited by the record, if any.
+
+    136 of the 326 records carry it, always as a single `gcx:Anchor` keyword whose
+    `xlink:href` points into the INSPIRE `SpatialScope` code list. The **code** is
+    read, never the label: the two disagree on 6 records, which cite
+    `…/SpatialScope/global` under the label "National", and the labels alone spell
+    two codes four ways ("National", "Nationales", "Régional", "regional").
+
+    Returns:
+        The scope, or `None` when the record cites none — the majority of the
+        catalogue — or cites a code outside the pivot enumeration.
+    """
+    for anchor in identification.iterfind(
+        "mri:descriptiveKeywords/mri:MD_Keywords/mri:keyword/gcx:Anchor", NAMESPACES
+    ):
+        href = (anchor.get(f"{{{NAMESPACES['xlink']}}}href") or "").strip()
+        if not href.startswith(_SPATIAL_SCOPE_CODELIST):
+            continue
+        code = href[len(_SPATIAL_SCOPE_CODELIST) :].strip("/").casefold()
+        try:
+            return SpatialScope(code)
+        except ValueError:
+            # A code INSPIRE added, or a typo in the URI: reported, not guessed at
+            # from the label, which is what disagrees with the code in the first place.
+            logger.warning("unsupported SpatialScope %r", href)
+    return None
 
 
 def _bbox(identification: ET.Element) -> list[float] | None:
@@ -603,6 +645,7 @@ _REPORTED_FIELDS = (
     "keywords",
     "inspire_themes",
     "topic_categories",
+    "spatial_scope",
     "bbox",
     "temporal_start",
     "created",

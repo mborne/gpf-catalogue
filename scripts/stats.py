@@ -83,6 +83,7 @@ def main() -> int:
 
     _print_counts("topic categories", stats.by_topic_category)
     _print_counts("INSPIRE themes", stats.by_inspire_theme)
+    _print_counts("INSPIRE spatial scopes", stats.by_spatial_scope)
     _print_counts("publishers (email domain)", stats.by_publisher)
     _print_counts("licence families", stats.by_licence_family)
     _print_counts("records by link type", stats.records_by_link_type)

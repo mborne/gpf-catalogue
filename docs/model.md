@@ -61,12 +61,45 @@ search facet, where free keywords are not.
 
 | Field | Type | Source in ISO 19115-3 | Coverage |
 |---|---|---|---|
+| `spatialScope` | `global` \| `european` \| `national` \| `regional` \| `local` \| `null` | the `xlink:href` of a `mri:keyword` anchor pointing into the INSPIRE `SpatialScope` code list | 41.7 % |
 | `bbox` | `[west, south, east, north]` \| `null` | `gex:EX_GeographicBoundingBox` | 92.3 % |
 | `temporalStart` | `string` \| `null` | `gex:temporalElement//gml:beginPosition` | 34.0 % |
 | `temporalEnd` | `string` \| `null` | `gex:temporalElement//gml:endPosition` | 33.7 % |
 | `created` | `string` \| `null` | `cit:CI_Date` of type `creation` | 57.1 % |
 | `published` | `string` \| `null` | `cit:CI_Date` of type `publication` | 47.2 % |
 | `revised` | `string` \| `null` | `cit:CI_Date` of type `revision` or `lastUpdate` | 28.8 % |
+
+`spatialScope` answers *is this a national product or a local one?* — the cheapest
+filter there is, and one a bounding box does not give: 81 records declare the same
+mainland France box. 136 records cite it, as one keyword anchor in an
+`INSPIRE Spatial Scope` thesaurus block:
+
+```xml
+<mri:keyword>
+  <gcx:Anchor xlink:href="http://inspire.ec.europa.eu/metadata-codelist/SpatialScope/national">National</gcx:Anchor>
+</mri:keyword>
+```
+
+The **code** is read, never the label. They disagree: 6 records cite
+`…/SpatialScope/global` under the label "National", and the labels spell two codes four
+ways — `National`, `Nationales`, `Régional`, `regional`. The code is the controlled
+value, the label is free text that happens to be next to it. `National` is in fact the
+most frequent keyword of the catalogue, on 123 records — 117 citing the code `national`
+and 6 citing `global`; faceting on the word would put those 6 in the wrong bucket, which
+is the whole reason the field exists as a code. The keyword itself stays in `keywords`
+exactly as published, label and all: the model does not edit what it flattens.
+
+The thesaurus block is not matched, only the keyword's own `xlink:href` — which is
+where the code lives. Not a single one of the 136 appears outside its thesaurus, and the
+thesaurus title itself is published two ways (`INSPIRE Spatial Scope` and
+`INSPIRE Spatial scope`), so matching on it would add a rule and buy nothing.
+
+A code outside the five values above is logged and the field stays `null`, rather than
+being guessed at from the label — the label being what disagrees with the code in the
+first place.
+
+The counts, over the 326 records: `national` 118, `global` 6, `regional` 5, `local` 4,
+`european` 3, and 190 records citing nothing at all.
 
 `bbox` is in decimal degrees, WGS 84, **GeoJSON order** — not the ISO order, which lists
 the two longitudes then the two latitudes. A record may declare several boxes, and their
@@ -191,6 +224,7 @@ that judgement to the consumer.
   ],
   "inspireThemes": [],
   "topicCategories": [],
+  "spatialScope": null,
   "bbox": [-180.0, -90.0, 180.0, 90.0],
   "temporalStart": null,
   "temporalEnd": null,

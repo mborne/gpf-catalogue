@@ -169,6 +169,13 @@ class CatalogueStats(BaseRecordModel):
     by_inspire_theme: list[Count] = Field(
         description="Records per INSPIRE theme. A record may carry several."
     )
+    by_spatial_scope: list[Count] = Field(
+        description=(
+            "Records per INSPIRE spatial scope. Records citing none are left out "
+            "rather than bucketed: an undeclared scope is not a scope, and 190 of "
+            "the 326 records cite nothing."
+        )
+    )
     by_publisher: list[Count] = Field(
         description=(
             "Records per contact email domain, used instead of `producer` because "
@@ -300,6 +307,7 @@ def compute_stats(
     by_type: Counter[str] = Counter()
     by_topic: Counter[str] = Counter()
     by_theme: Counter[str] = Counter()
+    by_scope: Counter[str] = Counter()
     by_publisher: Counter[str] = Counter()
     by_licence: Counter[str] = Counter()
     by_year: Counter[str] = Counter()
@@ -325,6 +333,8 @@ def compute_stats(
         by_theme.update(set(record.inspire_themes))
         keywords.update(set(record.keywords))
         by_licence[licence_family(record.licence)] += 1
+        if record.spatial_scope:
+            by_scope[record.spatial_scope.value] += 1
 
         publisher = publisher_of(record)
         if publisher:
@@ -379,6 +389,7 @@ def compute_stats(
         by_type=_ranked(by_type),
         by_topic_category=_ranked(by_topic),
         by_inspire_theme=_ranked(by_theme),
+        by_spatial_scope=_ranked(by_scope),
         by_publisher=_ranked(by_publisher),
         by_licence_family=_ranked(by_licence),
         by_year=_years(by_year),

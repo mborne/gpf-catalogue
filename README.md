@@ -110,6 +110,7 @@ made it, and how to reach the data.
 | `keywords` | `string[]` | 77.0 % | Free and controlled keywords, deduplicated |
 | `inspireThemes` | `string[]` | 56.4 % | Keywords from the GEMET INSPIRE thesaurus, usable as a facet |
 | `topicCategories` | `string[]` | 93.3 % | ISO topic categories, e.g. `environment` |
+| `spatialScope` | `national` \| `regional` \| … \| `null` | 41.7 % | INSPIRE spatial scope, read from the code the record cites |
 | `bbox` | `[w, s, e, n]` \| `null` | 92.3 % | Geographic extent, WGS 84, GeoJSON order |
 | `temporalStart` / `temporalEnd` | `string` \| `null` | 34 % | Period covered by the resource |
 | `created` / `published` / `revised` | `string` \| `null` | 57 / 47 / 29 % | Dates of the resource |
@@ -159,7 +160,7 @@ uv run python -m http.server -d site 8000
 
 | Tab | Question it answers |
 |---|---|
-| Overview | What is in the catalogue: by type, topic category, INSPIRE theme, publisher, licence and publication year, and which access protocols are offered |
+| Overview | What is in the catalogue: by type, topic category, INSPIRE theme, spatial scope, publisher, licence and publication year, and which access protocols are offered |
 | Records | Which resource matches a need: full text search combined with facets, and every link of a record |
 | Quality | What the source metadata is missing, field by field |
 

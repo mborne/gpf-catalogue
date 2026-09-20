@@ -48,6 +48,12 @@ Add the fields that make a record answerable, still one flat JSON per resource.
       records, and the consumer decides
 - [x] Publish the pivot catalogue as a single `catalogue.json`, in addition to one file
       per record
+- [x] **Spatial scope** — `spatialScope`, the INSPIRE code list value carried as a
+      keyword anchor (`mri:descriptiveKeywords`), cited by 136 of the 326 records.
+      Added after phase 3, for [issue #1](https://github.com/mborne/gpf-catalogue/issues/1):
+      it is the cheapest filter for *local data or national product?*, which `bbox`
+      does not answer — 81 records declare the same mainland France box. The code is
+      read, not the label: the two disagree on 6 records
 - [ ] ~~**Relations** — which service serves which dataset (`srv:operatesOn`,
       `mdb:parentMetadata`)~~ — **not possible**, see below
 
@@ -65,6 +71,9 @@ Measured over the 333 harvested records, not inferred from the standard:
   Reconstructing it from URL or title similarity would be a guess wearing the clothes of
   a fact. Either the producers start filling those elements, or a future phase publishes
   an explicitly heuristic link, clearly marked as such.
+- **The INSPIRE spatial scope contradicts its own label on 6 records**, which cite
+  `…/SpatialScope/global` under the label "National". The code is what the pivot model
+  keeps; producers publishing a scope they do not mean is theirs to fix.
 - **`cit:protocol` is empty on 85 % of the links** (2 203 of 2 584), which is why link
   typing leans on the URL.
 - **1 054 of the 2 584 online resources repeat an endpoint URL**, once per layer it
