@@ -3,6 +3,14 @@
 **An AI-ready catalogue of the Géoplateforme**, built from the ISO 19115 metadata records
 served by its CSW service.
 
+> [!IMPORTANT]
+> **Unofficial.** This is a personal experiment, published by an individual. It is not a
+> product, a service or a publication of the IGN or of the Géoplateforme, and neither
+> endorses it. The authoritative catalogue is
+> [cartes.gouv.fr](https://cartes.gouv.fr/rechercher-une-donnee/) — what is published here
+> is a weekly copy, so it lags behind and may be wrong. See the
+> [mentions légales](https://mborne.github.io/mentions-legales/).
+
 > [!NOTE]
 > **An experiment, and an AI generated repository.** This project is an experimentation
 > around making a spatial data catalogue usable by a LLM — it is not a production service.
@@ -130,7 +138,8 @@ Field by field, with the ISO source and the rules behind each value, see
 
 **<https://mborne.github.io/gpf-catalogue/>** — a static page over the catalogue: what it
 holds, which resource matches a need, and what the metadata is missing. No server, no
-runtime dependency, no CDN.
+runtime dependency, no CDN. It says on every tab that it is unofficial, and links the
+[mentions légales](https://mborne.github.io/mentions-legales/).
 
 It is rebuilt weekly by [`.github/workflows/pages.yml`](.github/workflows/pages.yml),
 which harvests the live service, parses it and publishes the result. The page carries

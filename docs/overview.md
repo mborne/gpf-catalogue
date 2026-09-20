@@ -15,7 +15,15 @@ uv run python -m http.server -d site 8000
 ```
 
 Then open <http://localhost:8000>. The published copy, rebuilt weekly from the live
-service, is at <https://mborne.github.io/gpf-catalogue/>. A plain `file://` open does not work: the page
+service, is at <https://mborne.github.io/gpf-catalogue/>.
+
+The page is published by an individual and is **not** an IGN or Géoplateforme site. It
+says so on every tab, in a notice placed ahead of every figure it qualifies rather than in
+the footer: a catalogue overview is easy to mistake for the catalogue's own. The notice
+names the authoritative source, states that the figures are a weekly copy, and links the
+[mentions légales](https://mborne.github.io/mentions-legales/), which the footer repeats.
+The `<title>` carries the word too, since that is what a search result and a bookmark
+show. A plain `file://` open does not work: the page
 fetches its two JSON documents, and browsers refuse cross origin `file://` requests.
 
 The site is **static and self contained**: no server, no build step, no runtime

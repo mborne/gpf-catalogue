@@ -18,6 +18,8 @@
   --bar-track: rgba(42, 120, 214, 0.10);
   --border: rgba(11, 11, 11, 0.10);
   --focus: #2a78d6;
+  /* Distinct from the single data hue, so the notice never reads as a series. */
+  --accent-warn: #ad5b28;
   --radius: 10px;
   --gap: 16px;
   /* The four bands that must line up: top bar, tabs, main, footer. The page is a
@@ -41,6 +43,7 @@
     --bar-track: rgba(57, 135, 229, 0.16);
     --border: rgba(255, 255, 255, 0.10);
     --focus: #3987e5;
+    --accent-warn: #e08a52;
   }
 }
 
@@ -57,6 +60,7 @@
   --bar-track: rgba(57, 135, 229, 0.16);
   --border: rgba(255, 255, 255, 0.10);
   --focus: #3987e5;
+  --accent-warn: #e08a52;
 }
 
 * { box-sizing: border-box; }
@@ -138,6 +142,40 @@ main {
   max-width: var(--shell);
   margin: 0 auto;
   padding: var(--gap) var(--gutter) 48px;
+}
+
+/* Ahead of every figure on the page, because a catalogue overview published by an
+   individual is easy to mistake for the catalogue's own. Marked out, not alarming:
+   it has to be read once, not shouted. */
+.disclaimer {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-warn);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  padding: 12px 14px;
+  margin-bottom: var(--gap);
+  max-width: 100ch;
+}
+
+.disclaimer strong { color: var(--ink); }
+
+/* On its own line: run on after the sentence about cartes.gouv.fr, it read as
+   part of it. */
+.disclaimer-legal { display: block; width: fit-content; margin-top: 8px; }
+
+.tag-unofficial {
+  border: 1px solid var(--accent-warn);
+  border-radius: 999px;
+  color: var(--accent-warn);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  text-transform: uppercase;
+  vertical-align: 2px;
 }
 
 .notice {
