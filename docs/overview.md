@@ -230,11 +230,18 @@ nodes, and anything it does not recognise becomes a text node, so a `<script>` i
 abstract is displayed rather than run. That is not theoretical: the text comes from a
 third party service over which this project has no control.
 
-### Links are shown raw
+### Links are shown raw, under one heading per protocol
 
-One row per entry the catalogue published — protocol, URL, name, description — sorted by
-protocol, then URL, then name. No grouping, no folding, no tidying: `IGNF_BD-TOPO` shows
-all 178 rows, of which 109 are the same WFS URL repeated once per feature type.
+One row per entry the catalogue published — URL, name, description — sorted by URL, then
+name, then description, in a table per protocol, the protocols in alphabetical order. No
+folding and no tidying: `IGNF_BD-TOPO` shows all 178 rows, of which 109 are the same WFS
+URL repeated once per feature type.
+
+The protocol is the one thing that does *not* need a row of its own. It is the same value
+on every line of a group — 109 times `wfs` on that record — and a column wide enough for
+`documentation` costs a third of the width left to the URL on a phone. It is written once,
+in the heading, beside the number of entries in the group; the rows themselves are untouched,
+and the seven groups of `IGNF_BD-TOPO` hold exactly its 178 entries.
 
 That repetition is the point. Tidying it in the page would hide what a consumer of this
 catalogue actually has to deal with, and the table is where the source's shape becomes

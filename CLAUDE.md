@@ -141,7 +141,9 @@ corrupts the mirror.
   it drops 1 179 layer names, and names a whole WFS service after whichever layer comes
   first — `BDTOPO_V3:aerodrome` — which states something untrue. **Grouping and filtering
   belong to whoever consumes the model**, not to the model. The overview shows the links
-  raw, one row per entry, because the repetition is part of what the catalogue looks like.
+  raw, one row per entry, because the repetition is part of what the catalogue looks like;
+  it only *sections* them by protocol — one heading, one table per type — because a value
+  that is identical on all 109 rows of a group is a heading, not a column.
 - **`cit:name` and `cit:description` are both kept.** `name` is the machine readable
   layer (`BDTOPO_V3:batiment`, the WFS `typeName`), `description` is the human label
   ("BD TOPO® V3 batiment"); they differ on 2 212 of the 2 243 entries carrying both.
