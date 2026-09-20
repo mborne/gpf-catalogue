@@ -1,0 +1,458 @@
+/* Author: Claude (Anthropic) — this file is AI generated, see docs/init.md. */
+
+/* Every chart on this page plots a single series, so there is a single bar colour
+   and no legend: the heading says what is plotted. Colouring each bar by its own
+   value would double-encode bar length as hue and spend the only free channel on
+   what the chart already shows. */
+
+:root {
+  color-scheme: light;
+  --plane: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --bar: #2a78d6;
+  --bar-track: rgba(42, 120, 214, 0.10);
+  --border: rgba(11, 11, 11, 0.10);
+  --focus: #2a78d6;
+  --radius: 10px;
+  --gap: 16px;
+  /* The four bands that must line up: top bar, tabs, main, footer. The page is a
+     data table as much as a dashboard, so it earns the width; prose keeps its own
+     max-width in ch, and does not stretch with it. */
+  --shell: 1600px;
+  --gutter: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --plane: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --bar: #3987e5;
+    --bar-track: rgba(57, 135, 229, 0.16);
+    --border: rgba(255, 255, 255, 0.10);
+    --focus: #3987e5;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --plane: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --bar: #3987e5;
+  --bar-track: rgba(57, 135, 229, 0.16);
+  --border: rgba(255, 255, 255, 0.10);
+  --focus: #3987e5;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--plane);
+  color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; line-height: 1.25; }
+h1 { font-size: 1.15rem; }
+h2 { font-size: 0.95rem; }
+p { margin: 0; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
+a { color: var(--bar); }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* --- chrome --------------------------------------------------------------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 14px var(--gutter) 10px;
+}
+
+.subtitle { color: var(--ink-2); font-size: 0.85rem; }
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.tab {
+  appearance: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--bar); }
+
+.ghost {
+  appearance: none;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.ghost:hover { color: var(--ink); }
+
+main {
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: var(--gap) var(--gutter) 48px;
+}
+
+.notice {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--bar);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 14px 16px;
+  margin-bottom: var(--gap);
+}
+
+.lead { color: var(--ink-2); max-width: 70ch; margin-bottom: var(--gap); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 0 0 var(--gap);
+}
+
+.caption { color: var(--muted); font-size: 0.82rem; margin-top: 4px; max-width: 62ch; }
+
+/* --- hero and tiles ------------------------------------------------------- */
+
+.hero { padding: 22px 20px; }
+.hero-label { color: var(--ink-2); font-size: 0.9rem; }
+.hero-value { font-size: 56px; font-weight: 600; line-height: 1.05; margin: 2px 0 4px; }
+.hero-note { color: var(--muted); font-size: 0.85rem; }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--gap);
+  margin-bottom: var(--gap);
+}
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.tile-label { color: var(--ink-2); font-size: 0.82rem; }
+.tile-value { font-size: 26px; font-weight: 600; margin-top: 2px; }
+.tile-note { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+
+/* --- charts --------------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: var(--gap);
+  align-items: start;
+  /* A full-width chart forces a row break, leaving holes beside the narrow ones on
+     a wide screen. The charts are independent, so letting later ones backfill costs
+     nothing. */
+  grid-auto-flow: dense;
+}
+
+.chart { margin: 0; }
+.chart.wide { grid-column: 1 / -1; }
+figcaption { margin-bottom: 12px; }
+
+.bars { display: flex; flex-direction: column; gap: 6px; }
+
+/* The label column caps at 13rem but never eats more than 45 % of a narrow card,
+   so a chart in a small card keeps a bar worth reading. */
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, clamp(5rem, 45%, 13rem)) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar-label {
+  color: var(--ink-2);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The track is the unfilled remainder, one step of the bar's own hue, so the
+   scale reads across the whole row. */
+.bar-track {
+  background: var(--bar-track);
+  border-radius: 0 4px 4px 0;
+  height: 14px;
+  overflow: visible;
+}
+
+/* 4px rounded data-end, square at the baseline. */
+.bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--bar);
+  border-radius: 0 4px 4px 0;
+}
+
+.bar-value {
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.2rem;
+  text-align: right;
+}
+
+.chart-more {
+  margin-top: 12px;
+}
+
+/* Column chart, for the one axis that is time. */
+.columns {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 160px;
+  border-bottom: 1px solid var(--axis);
+  padding-bottom: 0;
+}
+
+.column { flex: 1 1 0; display: flex; align-items: flex-end; height: 100%; }
+
+.column-fill {
+  width: 100%;
+  background: var(--bar);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+}
+
+.column-axis {
+  display: flex;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+.column-tick {
+  flex: 1 1 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.axis-max {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  border-top: 1px solid var(--grid);
+  padding-top: 2px;
+  margin-bottom: 4px;
+}
+
+/* --- filters -------------------------------------------------------------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* Capped: a <select> is as wide as its longest option, and "Répartition de la
+   population - démographie (10)" would otherwise take half the filter row. */
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 150px; max-width: 16rem; }
+.field select { width: 100%; }
+.field.grow { flex: 1 1 260px; max-width: 28rem; }
+.field.check { justify-content: center; min-width: auto; }
+.field label { color: var(--ink-2); font-size: 0.78rem; }
+
+/* A <select> is as wide as its longest option — "Répartition de la population -
+   démographie (10)" — which pushes the page sideways on a phone. */
+.field input[type="search"], .field select {
+  max-width: 100%;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: var(--plane);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 9px;
+  min-height: 34px;
+}
+
+.field.check label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+
+.result-count { color: var(--ink-2); font-size: 0.85rem; margin-bottom: 10px; }
+
+/* --- records -------------------------------------------------------------- */
+
+.record {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+
+.record > summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* `display: flex` on the summary drops the native disclosure marker, and a row
+   that opens has to look like one. */
+.record > summary { list-style: none; }
+.record > summary::-webkit-details-marker { display: none; }
+.record > summary::before { content: "\25B8"; color: var(--muted); font-size: 0.8em; }
+.record[open] > summary::before { content: "\25BE"; }
+/* Both can be long — a title of 90 characters, an identifier of 48 — and a flex
+   item does not shrink below its content unless it is told it may. */
+.record > summary > * { min-width: 0; overflow-wrap: anywhere; }
+.record-title { font-weight: 600; }
+.record-title.untitled { color: var(--muted); font-weight: 400; font-style: italic; }
+.record-id { color: var(--muted); font-size: 0.78rem; font-family: ui-monospace, monospace; }
+.record > summary::before { flex: 0 0 auto; }
+
+.badge {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-size: 0.72rem;
+  padding: 1px 8px;
+}
+
+.badge.warn { border-color: var(--bar); color: var(--bar); }
+
+.record-body { padding: 0 14px 14px; }
+.record-body .abstract { color: var(--ink-2); margin-bottom: 12px; max-width: 80ch; }
+
+.pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px 20px; }
+.pair { font-size: 0.85rem; }
+.pair dt { color: var(--muted); font-size: 0.75rem; }
+.pair dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+
+/* Wide by nature: the table scrolls inside its own box rather than pushing the
+   page sideways. */
+.table-wrap { overflow-x: auto; margin-top: 12px; }
+
+/* The links table is deliberately raw: one row per published entry, no grouping,
+   no tidying. Seeing the same endpoint repeated 109 times is the point. */
+.links-table { table-layout: fixed; min-width: 34rem; font-size: 0.8rem; }
+.links-table th, .links-table td { padding: 5px 8px; vertical-align: top; }
+/* Wide enough for `documentation`, the longest link type, plus its padding. */
+.links-table th:first-child, .links-table td.protocol { width: 8.75rem; }
+.links-table td.protocol { color: var(--ink-2); font-family: ui-monospace, monospace; }
+.links-table td.name { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+.links-table td.url { width: 40%; }
+.links-table td.url a { overflow-wrap: anywhere; }
+
+.sources { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 12px; font-size: 0.85rem; }
+
+.record-body .section-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-top: 18px;
+}
+
+.chips { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chips li {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.78rem;
+  font-family: ui-monospace, monospace;
+  color: var(--ink-2);
+}
+
+/* --- tables --------------------------------------------------------------- */
+
+.table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.88rem; }
+.table th, .table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--grid); }
+.table th { color: var(--muted); font-weight: 500; font-size: 0.78rem; }
+.table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.table tr:last-child td { border-bottom: 0; }
+
+.funnel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 14px;
+  color: var(--ink-2);
+}
+
+.funnel strong { color: var(--ink); font-size: 1.05rem; }
+
+.prose { color: var(--ink-2); max-width: 78ch; padding-left: 18px; margin: 0; }
+.prose li { margin-bottom: 8px; }
+
+.footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8rem;
+  max-width: var(--shell);
+  margin: 0 auto;
+  padding: 16px var(--gutter);
+}
+
+@media (max-width: 560px) {
+  :root { --gutter: 14px; }
+  .hero-value { font-size: 44px; }
+}

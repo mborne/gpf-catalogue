@@ -37,6 +37,7 @@ uv sync                                 # install the dependencies
 uv run scripts/harvest.py --limit 5     # try on 5 records
 uv run scripts/harvest.py               # mirror the whole catalogue (~10 min)
 uv run scripts/parse.py                 # convert it to the pivot model
+uv run scripts/build_site.py            # build the overview site into site/
 ```
 
 Both commands write to `data/`, which is not versioned: it is a rebuildable mirror.
@@ -60,15 +61,16 @@ cat data/csw/IGNF_BD-TOPO.json
   "revised": "2026-07-31",
   "licence": "Licence Ouverte / Open License (compatible ODC-BY, CC-BY 2.0)",
   "links": [
-    { "type": "download", "url": "https://data.geopf.fr/telechargement/resource/BDTOPO", "name": "BD TOPO® V3" },
-    { "type": "wfs", "url": "https://data.geopf.fr/wfs/ows?...", "name": "GetCapabilities - WFS" }
+    { "type": "download", "url": "https://data.geopf.fr/telechargement/resource/BDTOPO", "name": "BD TOPO® V3", "description": null },
+    { "type": "wfs", "url": "https://data.geopf.fr/wfs/ows?...", "name": "BDTOPO_V3:batiment", "description": "BD TOPO® V3 batiment" }
   ],
   "suspectedTest": false
 }
 ```
 
-Shortened here — the real record is 10 KB where the source is 201 813 bytes. The whole
-catalogue is also written as a single `data/catalogue.json`, 840 KB for 326 records.
+Shortened here — the real record carries 178 links, one per published layer, and weighs
+39 KB where the source is 201 813 bytes. The whole catalogue is also written as a single
+`data/catalogue.json`, 1.2 MB for 326 records.
 
 ## Pipeline
 
@@ -76,6 +78,8 @@ catalogue is also written as a single `data/catalogue.json`, 840 KB for 326 reco
 |---|---|---|---|
 | Harvest | `uv run scripts/harvest.py` | `GetRecords` + `GetRecordById` on `data.geopf.fr/csw` | `data/csw/{name}.xml` |
 | Parse | `uv run scripts/parse.py` | `data/csw/*.xml` | `data/csw/{name}.json` + `data/catalogue.json` |
+| Aggregate | `uv run scripts/stats.py` | `data/catalogue.json` | `data/stats.json` |
+| Build the site | `uv run scripts/build_site.py` | `data/catalogue.json` | `site/` |
 | Export schema | `uv run scripts/export_schema.py` | the model | [`docs/pivot-schema.json`](docs/pivot-schema.json) |
 
 Each command supports `--help`, and `-v` for debug logs. The harvest is **resumable**:
@@ -103,17 +107,50 @@ made it, and how to reach the data.
 | `created` / `published` / `revised` | `string` \| `null` | 57 / 47 / 29 % | Dates of the resource |
 | `licence` | `string` \| `null` | 50.0 % | Licence or use condition, as published |
 | `accessConstraint` | `string` \| `null` | 46.0 % | Limitation on public access |
-| `links` | `Link[]` | 98.5 % | Typed access endpoints, deduplicated |
+| `links` | `Link[]` | 98.5 % | Typed access endpoints, one per published entry |
 | `suspectedTest` | `boolean` | — | The record looks like a test publication |
 
-A `Link` is `{ "type", "url", "name" }`, typed `wfs`, `wms`, `wmts`, `tms`, `download`,
-`capabilities`, `documentation` or `other`. The catalogue leaves `cit:protocol` empty on
-85 % of its links, so the type is inferred from the URL when it is missing; and it repeats
-the same endpoint once per layer, so links are deduplicated — `IGNF_ADMIN-EXPRESS`
-publishes 251 links for 16 distinct URLs.
+A `Link` is `{ "type", "url", "name", "description" }`, typed `wfs`, `wms`, `wmts`,
+`tms`, `download`, `capabilities`, `documentation` or `other`. The catalogue leaves
+`cit:protocol` empty on 85 % of its links, so the type is inferred from the URL when it
+is missing.
+
+**Links are kept flat, one per published entry.** The catalogue publishes one entry per
+*layer*, all sharing the endpoint URL and differing by name and description:
+`IGNF_BD-TOPO` publishes 109 WFS entries for one WFS URL, `IGNF_ADMIN-EXPRESS` 251 for
+16 URLs. Collapsing them would drop the 1 179 layer names — the very thing that says
+what an endpoint serves — so grouping is left to whoever consumes the data. The overview
+deliberately does not group either: it shows one row per entry, so the repetition stays
+visible.
 
 Field by field, with the ISO source and the rules behind each value, see
 [docs/model.md](docs/model.md). What comes next is in [ROADMAP.md](ROADMAP.md).
+
+## Overview
+
+A static page over the catalogue — what it holds, which resource matches a need, and
+what the metadata is missing. No server, no runtime dependency, no CDN.
+
+```bash
+uv run scripts/build_site.py
+uv run python -m http.server -d site 8000
+```
+
+| Tab | Question it answers |
+|---|---|
+| Overview | What is in the catalogue: by type, topic category, INSPIRE theme, publisher, licence and publication year, and which access protocols are offered |
+| Records | Which resource matches a need: full text search combined with facets, and every link of a record |
+| Quality | What the source metadata is missing, field by field |
+
+Two values are derived for display and never written back into the model: the publisher
+is the **contact email domain**, because `producer` carries 134 spellings for far fewer
+organisations, and licences are grouped by a **published mapping**, in which the 163
+records declaring nothing read *Undeclared* rather than *open*. The rules, and what the
+overview deliberately refuses to derive, are in [docs/overview.md](docs/overview.md).
+
+`uv run scripts/stats.py` writes the same aggregates to `data/stats.json` without
+building the page, and `--format markdown` regenerates the coverage figures quoted
+above.
 
 ## Status and limits
 
@@ -124,11 +161,13 @@ Last full run, 2026-09-20:
 | Records published by the service | 336 |
 | Harvested | 333 |
 | Converted to the pivot model | 326 |
-| Typed access links kept | 1 530 |
+| Typed access links kept | 2 575, over 828 distinct endpoints |
 | Records flagged as test publications | 14 |
 
-- **No index, no MCP server yet** — this repository currently produces data, not a search
-  API. That is [ROADMAP.md](ROADMAP.md) phase 3.
+- **No index, no MCP server yet** — this repository produces data and a page to browse
+  it, not a search API. Filtering happens in the browser over the whole catalogue, which
+  works at 326 records and would not at ten thousand. That is
+  [ROADMAP.md](ROADMAP.md) phase 4.
 - **Two planned fields do not exist in the catalogue.** `srv:operatesOn` and
   `mdb:parentMetadata`, which would say which service serves which dataset, appear in
   **zero** of the 333 records. The relation cannot be published because the source does
@@ -148,6 +187,7 @@ Last full run, 2026-09-20:
 
 - [docs/why.md](docs/why.md) — why a LLM cannot be plugged directly into a CSW service.
 - [docs/model.md](docs/model.md) — the pivot model, field by field.
+- [docs/overview.md](docs/overview.md) — the overview site, and every value it derives.
 - [docs/init.md](docs/init.md) — how this repository was bootstrapped.
 - [ROADMAP.md](ROADMAP.md) — what comes next.
 

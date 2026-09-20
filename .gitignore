@@ -15,6 +15,9 @@ dist/
 # which holds the sample records the test suite cannot run without.
 /data/
 
+# Built overview site (rebuildable from data/, see docs/overview.md).
+/site/
+
 # Tooling caches
 .pytest_cache/
 .ruff_cache/

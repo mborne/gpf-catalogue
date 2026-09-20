@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `gpf-catalogue` turns the Géoplateforme CSW catalogue (336 ISO 19115-3 metadata records at
 `https://data.geopf.fr/csw`) into a flat, LLM-consumable **pivot model**: one small JSON
-document per resource. It produces data, not a search API — indexing and an MCP server are
-Phase 3 of [ROADMAP.md](ROADMAP.md).
+document per resource, plus a static page to browse and measure them. It produces data,
+not a search API — indexing and an MCP server are Phase 4 of [ROADMAP.md](ROADMAP.md).
 
 Read [docs/why.md](docs/why.md) before proposing design changes: it records the measurements
 (payload sizes, broken `AnyText` filtering, the three ISO encodings of a string) that justify
@@ -27,6 +27,10 @@ uv run scripts/harvest.py --limit 5         # smoke run against the live CSW ser
 uv run scripts/harvest.py                   # mirror the whole catalogue (~10 min)
 uv run scripts/harvest.py --only IGNF_BD-TOPO --force   # refresh one record
 uv run scripts/parse.py                     # *.xml -> *.json + data/catalogue.json
+uv run scripts/stats.py                     # catalogue.json -> data/stats.json
+uv run scripts/stats.py --format markdown   # the coverage table quoted by the docs
+uv run scripts/build_site.py                # assemble site/
+uv run python -m http.server -d site 8000   # serve it; file:// does not work
 uv run scripts/export_schema.py             # regenerate docs/pivot-schema.json
 ```
 
@@ -46,6 +50,9 @@ part and the pure part never mix:
 CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/csw/{stem}.json
               harvest.py                                   data/catalogue.json
                                                            (CatalogueRecord)
+                                                                  │
+                                            stats.py ─────────────┤──> data/stats.json
+                                            site.py + web/ ───────┴──> site/
 ```
 
 `catalogue.json` is written *beside* `data_dir`, never inside it: a record identified
@@ -58,6 +65,8 @@ CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/c
 | `gpf_catalogue/parse.py` | `parse_record(bytes) -> CatalogueRecord`, **pure**: no I/O, no network. This is what the tests cover. |
 | `gpf_catalogue/model.py` | The pivot model (`CatalogueRecord`, Pydantic v2) — the contract downstream consumers read. |
 | `gpf_catalogue/namespaces.py` | The ISO 19115-3 prefix map; ISO split the old single `gmd` namespace into a dozen. |
+| `gpf_catalogue/stats.py` | `compute_stats(list[CatalogueRecord]) -> CatalogueStats`, **pure** like `parse_record`. Aggregates, field coverage, and the derived publisher / licence family / year. |
+| `gpf_catalogue/site.py`, `web/` | Assembly of the static overview site, and its three vanilla HTML/CSS/JS files. No template engine, no CDN, no runtime dependency. |
 | `gpf_catalogue/harvest.py`, `cli.py` | Orchestration and shared argparse/logging helpers. |
 | `scripts/*.py` | Thin CLI wrappers: argparse + call the library + print a summary + exit code. |
 
@@ -87,16 +96,36 @@ corrupts the mirror.
   identifier, a half declared bounding box is never completed, a licence is never guessed.
   Anomalies are logged and counted in the run reports instead of being hidden.
 - **Link typing leans on the URL, not the protocol.** `cit:protocol` is empty on 85 % of
-  the 2 584 links. A `?REQUEST=GetCapabilities` *query* is the service endpoint itself and
+  the 2 584 published online resources. A `?REQUEST=GetCapabilities` *query* is the
+  service endpoint itself and
   must stay typed `wfs`/`wms`/…; only a static `capabilities.xml` file is `capabilities`.
   Typing the query as a document would hide the endpoint from a consumer asking for the WFS.
-- **Links are deduplicated on `(type, url)`, first occurrence wins.** The catalogue
-  repeats an endpoint once per layer: `IGNF_ADMIN-EXPRESS` publishes 251 links for 16
-  distinct URLs. The first occurrence is the one carrying a name more often than not.
+- **Links stay flat, one per published entry.** The catalogue publishes one
+  `CI_OnlineResource` per *layer*, all sharing the endpoint URL and differing by
+  `cit:name` and `cit:description`: `IGNF_BD-TOPO` publishes 109 WFS entries for one URL,
+  `IGNF_ADMIN-EXPRESS` 251 for 16. Only exact `(type, url, name, description)` repeats
+  are dropped, which is 9 entries catalogue wide. Do not collapse them on `(type, url)`:
+  it drops 1 179 layer names, and names a whole WFS service after whichever layer comes
+  first — `BDTOPO_V3:aerodrome` — which states something untrue. **Grouping and filtering
+  belong to whoever consumes the model**, not to the model. The overview shows the links
+  raw, one row per entry, because the repetition is part of what the catalogue looks like.
+- **`cit:name` and `cit:description` are both kept.** `name` is the machine readable
+  layer (`BDTOPO_V3:batiment`, the WFS `typeName`), `description` is the human label
+  ("BD TOPO® V3 batiment"); they differ on 2 212 of the 2 243 entries carrying both.
 - **Output is deterministic.** No timestamp in `catalogue.json`, first value wins on every
   ambiguity, stable ordering. Two runs over the same mirror produce identical bytes, which
-  is what makes catalogue drift diffable (ROADMAP phase 4). Do not add a `generated` field.
-- **`data/` is gitignored** — a rebuildable mirror, not source.
+  is what makes catalogue drift diffable (ROADMAP phase 5). Do not add a `generated` field.
+- **The overview never writes back into the pivot model.** The publisher (contact email
+  domain), the licence family and the publication year are derived in `stats.py` for
+  display only, each by a rule published in [docs/overview.md](docs/overview.md), and are
+  shipped per record in `stats.json` so the page never reimplements them. Two
+  implementations of one rule become two rules. Do not normalise `producer` into the
+  model: 134 spellings hide fewer organisations, but folding them is an editorial
+  decision, not something the catalogue said.
+- **A zero is drawn as zero.** The year histogram keeps empty years at zero so the axis
+  stays time, and a zero column draws nothing — the 2 px minimum that keeps small bars
+  visible would otherwise make "no record" look like "one record".
+- **`data/` and `site/` are gitignored** — both rebuildable, not source.
 
 ### Adding a field to the pivot model
 
@@ -110,8 +139,11 @@ corrupts the mirror.
    both inherit citation and abstract from the same ISO type, so one code path reads both.
 4. Watch out for nested citations — a thesaurus citation must not be mistaken for the resource
    title (there is a test for this). Prefer anchored `find()` paths over `.//`.
-5. Run `uv run scripts/export_schema.py` and update [docs/model.md](docs/model.md),
-   including the measured coverage — run the parser, do not estimate it.
+5. Run `uv run scripts/export_schema.py`, then
+   `uv run scripts/stats.py --format markdown` and paste its table into
+   [docs/model.md](docs/model.md). Coverage is measured, never estimated; `stats.py`
+   reads the field list from the model, so a new field is counted without being
+   registered anywhere.
 6. Add a shape to `tests/data/dataset.xml` and assert it in `tests/test_parse.py`. That
    fixture is meant to carry one example of every shape the live catalogue uses.
 

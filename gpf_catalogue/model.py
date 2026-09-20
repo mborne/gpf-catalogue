@@ -83,14 +83,27 @@ class Link(BaseRecordModel):
     Attributes:
         type: What the link leads to.
         url: The absolute URL, as published by the catalogue.
-        name: Label given by the catalogue, `None` on the 291 links that carry none.
+        name: Label given by the catalogue — often a layer, `BDTOPO_V3:batiment`.
+        description: Human readable label of the same entry, "BD TOPO® V3 batiment".
     """
 
     type: LinkType = Field(description="What the link leads to.")
     url: str = Field(description="Absolute URL of the endpoint.")
     name: str | None = Field(
         default=None,
-        description="Label given by the catalogue, null when it publishes none.",
+        description=(
+            "Label published for this entry, null when the catalogue gives none. On "
+            "a service it is usually the layer or feature type reached at that URL, "
+            "e.g. `BDTOPO_V3:batiment`."
+        ),
+    )
+    description: str | None = Field(
+        default=None,
+        description=(
+            "Human readable label of the same entry, e.g. 'BD TOPO® V3 batiment'. "
+            "Null when the catalogue gives none; it differs from `name` on 2 212 of "
+            "the 2 243 entries carrying both."
+        ),
     )
 
 
@@ -207,7 +220,8 @@ class CatalogueRecord(BaseRecordModel):
     links: list[Link] = Field(
         default_factory=list,
         description=(
-            "Access endpoints, deduplicated on (type, url). Empty when the record "
+            "Access endpoints, one per (type, url); the catalogue publishes one "
+            "entry per layer, collected into `layers`. Empty when the record "
             "publishes none."
         ),
     )

@@ -66,7 +66,7 @@ def test_catalogue_is_byte_stable_across_runs(mirror):
     """Two runs over the same mirror produce the same bytes.
 
     The aggregate carries no timestamp on purpose, so that catalogue drift can be
-    diffed between two harvests (ROADMAP phase 4).
+    diffed between two harvests (ROADMAP phase 5).
     """
     parse_all(mirror)
     first = (mirror.parent / "catalogue.json").read_bytes()
@@ -90,7 +90,7 @@ def test_report_counts_coverage_and_links(mirror):
     assert report.coverage["producer"] == 1
     assert report.coverage["bbox"] == 1
     assert report.coverage["links"] == 1
-    assert report.links_by_type["wfs"] == 1
+    assert report.links_by_type["wfs"] == 2
     # Two of the three samples have no abstract worth the name, one has none.
     assert report.missing_abstract == 1
 

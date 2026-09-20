@@ -403,13 +403,23 @@ def _constraints(identification: ET.Element) -> tuple[str | None, str | None]:
 
 
 def _links(metadata: ET.Element) -> list[Link]:
-    """Return the access endpoints of a record, typed and deduplicated.
+    """Return the access endpoints of a record, typed and kept flat.
 
-    The catalogue repeats the same endpoint once per layer it serves:
-    `IGNF_ADMIN-EXPRESS` publishes 251 links for 16 distinct URLs. Deduplicating
-    on `(type, url)` keeps the record readable without losing an endpoint.
+    The catalogue publishes one `CI_OnlineResource` **per layer**, all carrying the
+    same endpoint URL and differing by `cit:name` and `cit:description`:
+    `IGNF_BD-TOPO` publishes 109 WFS entries for one WFS URL, named
+    `BDTOPO_V3:aerodrome`, `BDTOPO_V3:batiment`, and so on.
+
+    Every entry is kept, one link each. Collapsing them on `(type, url)` — as
+    earlier versions did — dropped the layer the entry names, and labelled a whole
+    WFS service after whichever layer came first, which reads as *this endpoint
+    serves aerodromes*. Grouping and filtering are a presentation concern; the
+    pivot model stays flat and keeps what the catalogue published.
+
+    Only **exact** repeats are dropped, the same `(type, url, name, description)`
+    published twice, which is 9 entries across the catalogue.
     """
-    links: dict[tuple[str, str], Link] = {}
+    links: dict[tuple[str, str, str | None, str | None], Link] = {}
     for resource in metadata.iterfind(
         "mdb:distributionInfo/mrd:MD_Distribution//mrd:onLine/cit:CI_OnlineResource",
         NAMESPACES,
@@ -422,9 +432,9 @@ def _links(metadata: ET.Element) -> list[Link]:
             type=_link_type(url, protocol),
             url=url,
             name=_text(resource.find("cit:name", NAMESPACES)),
+            description=_text(resource.find("cit:description", NAMESPACES)),
         )
-        # First occurrence wins: it is the one carrying a name more often than not.
-        links.setdefault((link.type.value, link.url), link)
+        links.setdefault((link.type.value, link.url, link.name, link.description), link)
     return list(links.values())
 
 
@@ -673,7 +683,7 @@ def write_catalogue(records: list[CatalogueRecord], path: Path) -> None:
     the whole catalogue in memory, which at this size is the common case.
 
     The output carries no timestamp on purpose: two runs over the same mirror
-    produce the same bytes, so catalogue drift can be diffed (see ROADMAP phase 4).
+    produce the same bytes, so catalogue drift can be diffed (see ROADMAP phase 5).
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {

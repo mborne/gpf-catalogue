@@ -236,6 +236,48 @@
                 </cit:linkage>
               </cit:CI_OnlineResource>
             </mrd:onLine>
+            <!-- One endpoint published once per layer, the shape IGNF_BD-TOPO uses
+                 for its 109 WFS feature types: the same URL every time, the layer
+                 in cit:name. The third entry repeats the first layer. -->
+            <mrd:onLine>
+              <cit:CI_OnlineResource>
+                <cit:linkage>
+                  <gco:CharacterString>https://data.geopf.fr/wms-v/ows?SERVICE=WMS&amp;REQUEST=GetCapabilities</gco:CharacterString>
+                </cit:linkage>
+                <cit:name>
+                  <gco:CharacterString>SAMPLE_V1:cours_d_eau</gco:CharacterString>
+                </cit:name>
+                <cit:description>
+                  <gco:CharacterString>Sample V1 cours d'eau</gco:CharacterString>
+                </cit:description>
+              </cit:CI_OnlineResource>
+            </mrd:onLine>
+            <mrd:onLine>
+              <cit:CI_OnlineResource>
+                <cit:linkage>
+                  <gco:CharacterString>https://data.geopf.fr/wms-v/ows?SERVICE=WMS&amp;REQUEST=GetCapabilities</gco:CharacterString>
+                </cit:linkage>
+                <cit:name>
+                  <gco:CharacterString>SAMPLE_V1:plan_d_eau</gco:CharacterString>
+                </cit:name>
+                <cit:description>
+                  <gco:CharacterString>Sample V1 plan d'eau</gco:CharacterString>
+                </cit:description>
+              </cit:CI_OnlineResource>
+            </mrd:onLine>
+            <mrd:onLine>
+              <cit:CI_OnlineResource>
+                <cit:linkage>
+                  <gco:CharacterString>https://data.geopf.fr/wms-v/ows?SERVICE=WMS&amp;REQUEST=GetCapabilities</gco:CharacterString>
+                </cit:linkage>
+                <cit:name>
+                  <gco:CharacterString>SAMPLE_V1:cours_d_eau</gco:CharacterString>
+                </cit:name>
+                <cit:description>
+                  <gco:CharacterString>Sample V1 cours d'eau</gco:CharacterString>
+                </cit:description>
+              </cit:CI_OnlineResource>
+            </mrd:onLine>
             <!-- A static capabilities file, under a path no service segment matches. -->
             <mrd:onLine>
               <cit:CI_OnlineResource>

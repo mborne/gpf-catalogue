@@ -191,14 +191,46 @@ def _links_of(record, link_type):
     return [link for link in record.links if link.type is link_type]
 
 
-def test_links_are_deduplicated(dataset):
-    """The catalogue repeats an endpoint per layer; the pivot model keeps one."""
+def test_links_are_kept_flat(dataset):
+    """Every published entry becomes a link; only exact repeats are dropped.
+
+    The catalogue publishes one entry per layer, all sharing the endpoint URL. The
+    fixture carries the same WFS URL twice, named once and unnamed once.
+    """
     wfs = _links_of(dataset, LinkType.WFS)
 
-    assert len(wfs) == 1
-    assert wfs[0].url.startswith("https://data.geopf.fr/wfs/ows")
-    # The first occurrence wins, and it is the one carrying a name.
-    assert wfs[0].name == "GetCapabilities - WFS"
+    assert len(wfs) == 2
+    assert {link.name for link in wfs} == {"GetCapabilities - WFS", None}
+    assert all(link.url.startswith("https://data.geopf.fr/wfs/ows") for link in wfs)
+
+
+def test_each_layer_keeps_its_own_entry(dataset):
+    """`IGNF_BD-TOPO` publishes 109 WFS entries for one URL, one per feature type.
+
+    Collapsing them on `(type, url)` dropped the layer each entry names, and
+    labelled the whole service after whichever came first — which reads as *this
+    endpoint serves aerodromes*. Grouping belongs to a presentation step.
+    """
+    wms = _links_of(dataset, LinkType.WMS)
+
+    assert [link.name for link in wms] == [
+        "SAMPLE_V1:cours_d_eau",
+        "SAMPLE_V1:plan_d_eau",
+    ]
+    # All three entries share one URL; the third exactly repeats the first.
+    assert len({link.url for link in wms}) == 1
+
+
+def test_the_human_label_is_kept_beside_the_layer_name(dataset):
+    """`cit:name` is machine readable, `cit:description` is what a reader wants.
+
+    They differ on 2 212 of the 2 243 entries carrying both, so keeping only one
+    loses the other.
+    """
+    wms = _links_of(dataset, LinkType.WMS)
+
+    assert wms[0].description == "Sample V1 cours d'eau"
+    assert wms[1].description == "Sample V1 plan d'eau"
 
 
 def test_getcapabilities_query_is_the_service_endpoint(dataset):
@@ -306,7 +338,7 @@ def test_json_uses_iso_field_names(dataset):
     assert payload["temporalStart"] == "2008-03-18"
     assert payload["accessConstraint"].startswith("Pas de restriction")
     assert payload["suspectedTest"] is False
-    assert {"type", "url", "name"} == set(payload["links"][0])
+    assert {"type", "url", "name", "description"} == set(payload["links"][0])
 
 
 def test_json_has_no_unexpected_field(dataset):
