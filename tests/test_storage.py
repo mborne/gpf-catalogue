@@ -3,6 +3,7 @@
 Every case below comes from an identifier actually published by the Géoplateforme
 catalogue.
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import pytest
 

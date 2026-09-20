@@ -1,4 +1,5 @@
 """Helpers shared by the command line scripts of `scripts/`."""
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import argparse
 import logging

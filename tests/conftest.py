@@ -1,4 +1,5 @@
 """Fixtures shared by the tests."""
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 from pathlib import Path
 

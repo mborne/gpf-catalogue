@@ -1,5 +1,7 @@
 # Roadmap
 
+*Author: Claude (Anthropic) — this document is AI generated, see [docs/init.md](docs/init.md).*
+
 The goal is a catalogue of the Géoplateforme that a LLM can search and describe, built from
 the ISO 19115 records of [`https://data.geopf.fr/csw`](https://data.geopf.fr/csw).
 

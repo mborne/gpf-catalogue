@@ -7,6 +7,7 @@ reported and does not abort the run.
 The catalogue is always listed, even when only a few records are wanted, because
 file names are computed from the whole set of identifiers (see `storage`).
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import logging
 import time

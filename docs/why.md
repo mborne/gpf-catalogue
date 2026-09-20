@@ -1,5 +1,7 @@
 # Why a LLM cannot simply be plugged into a CSW service
 
+*Author: Claude (Anthropic) — this document is AI generated, see [init.md](init.md).*
+
 The Géoplateforme catalogue is already available through an open, standard, well documented
 interface: a CSW 2.0.2 service at [`https://data.geopf.fr/csw`](https://data.geopf.fr/csw),
 serving ISO 19115-3 metadata records. It is the interface that powers

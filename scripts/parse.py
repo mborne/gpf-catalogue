@@ -7,6 +7,7 @@ Examples:
   uv run scripts/parse.py
   uv run scripts/parse.py --data-dir /tmp/csw --verbose
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import argparse
 

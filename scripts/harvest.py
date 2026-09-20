@@ -8,6 +8,7 @@ Examples:
   uv run scripts/harvest.py                    # mirror the whole catalogue
   uv run scripts/harvest.py --only IGNF_BD-TOPO --force
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import argparse
 

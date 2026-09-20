@@ -4,6 +4,7 @@ The catalogue answers with CSW 2.0.2 envelopes containing ISO 19115-3 (`mdb` 2.0
 records. ISO 19115-3 splits what ISO 19139 kept in a single `gmd` namespace into a
 dozen of them, hence this map.
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 # CSW 2.0.2 envelope and the Dublin Core records it embeds.
 CSW = "http://www.opengis.net/cat/csw/2.0.2"

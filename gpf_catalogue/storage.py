@@ -13,6 +13,7 @@ and pairs differing only by case (`id` and `ID`, `test` and `TEST`). The last ca
 would silently overwrite a record on a case insensitive file system, so file names
 are computed for the catalogue as a whole, not one identifier at a time.
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import hashlib
 import logging

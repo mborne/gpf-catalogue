@@ -4,6 +4,7 @@ They run offline on the sample records of `tests/data`, which cover the shapes m
 in the Géoplateforme catalogue: a dataset, a real service record with English
 translations, a record without title, and a title carried by an anchor.
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import pytest
 

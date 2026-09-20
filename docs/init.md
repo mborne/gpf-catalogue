@@ -1,5 +1,7 @@
 # How this repository was bootstrapped
 
+*Author: Claude (Anthropic) — this document, like the rest of this repository, is AI generated.*
+
 This repository was created on 2026-09-20 from a single instruction, kept here verbatim so
 that the origin of the choices made below stays auditable. The prompt is in French; the
 code, comments and documentation are in English, as it asks.
@@ -101,3 +103,29 @@ uv run scripts/harvest.py     # 333 records into data/csw/*.xml
 uv run scripts/parse.py       # 326 pivot records into data/csw/*.json
 uv run pytest
 ```
+
+## Authorship
+
+This repository is an experimentation, and is almost entirely written by Claude (Anthropic)
+through Claude Code, from the instruction above. So that this stays visible in the files
+themselves and not only in the README, every generated file carries an author line:
+
+| File kind | Where the attribution lives |
+|---|---|
+| Python (`gpf_catalogue/`, `scripts/`, `tests/`) | a comment right below the module docstring, so it stays out of `--help` output |
+| Markdown (`README.md`, `ROADMAP.md`, `CLAUDE.md`, `docs/*.md`) | a line below the title |
+| `pyproject.toml`, `.gitignore` | a header comment; `pyproject.toml` also declares PEP 621 `authors` / `maintainers` |
+| [`pivot-schema.json`](pivot-schema.json) | a `$comment` key, since JSON has none — emitted by `scripts/export_schema.py`, so it survives regeneration |
+| `tests/data/dataset.xml`, `no-title.xml`, `anchor-no-scope.xml` | an XML comment |
+
+Four files carry none, on purpose:
+
+- `tests/data/GeoPF_Altimetrie.xml` — a record served verbatim by the Géoplateforme. It was
+  not authored here, and the point of the fixture is that it is what the service sent.
+- `LICENSE` — MIT boilerplate. Copyright and ownership are the maintainer's, not Claude's.
+- `uv.lock` — resolved by uv, not written here.
+- `.python-version` — a bare value, with no comment syntax.
+
+Ownership is unchanged by any of this: the repository is reviewed, merged and licensed by
+[@mborne](https://github.com/mborne). Attribution records how the code was produced, not who
+is responsible for it.

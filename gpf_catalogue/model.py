@@ -7,6 +7,7 @@ for the rationale and `scripts/export_schema.py` to regenerate the JSON schema.
 This first version only carries what is needed to identify and describe a resource.
 Producer, contacts and service links are planned for the next iteration (see ROADMAP.md).
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 from enum import StrEnum
 

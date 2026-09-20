@@ -1,4 +1,5 @@
 {
+  "$comment": "Author: Claude (Anthropic) — this schema is AI generated and exported from gpf_catalogue.model by scripts/export_schema.py; do not edit it by hand.",
   "$defs": {
     "ResourceType": {
       "description": "Kind of resource described by a metadata record.\n\nValues mirror the ISO `MD_ScopeCode` code list, restricted to the values\nactually used by the Géoplateforme catalogue.",

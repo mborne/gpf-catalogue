@@ -12,5 +12,6 @@ Organization:
 - `harvest`: download raw records to `data/csw/{fileIdentifier}.xml`,
 - `parse`: convert raw records to `data/csw/{fileIdentifier}.json`.
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 __version__ = "0.1.0"

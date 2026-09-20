@@ -8,6 +8,7 @@ ISO leaves several ways to express the same string. A title can be a plain
 `lan:PT_FreeText`. `_text()` resolves all three in one place, so every field added
 later inherits the same behaviour.
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import logging
 import xml.etree.ElementTree as ET

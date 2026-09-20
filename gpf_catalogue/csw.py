@@ -8,6 +8,7 @@ Only the two operations needed to mirror the catalogue are implemented:
 Responses are returned as raw bytes so that what we store on disk stays byte
 identical to what the service sent.
 """
+# Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import logging
 import xml.etree.ElementTree as ET
