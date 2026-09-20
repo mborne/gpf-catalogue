@@ -4,7 +4,7 @@ import { useMemo, type JSX, type ReactNode } from "react";
 
 import { cartesGouvUrl, cmp, cswUrl, fmt } from "../format";
 import { Markdown } from "../markdown";
-import type { CatalogueRecord, RecordFacets } from "../types";
+import type { CatalogueRecord, Link, RecordFacets } from "../types";
 
 function Pair({ term, value }: { term: string; value: ReactNode }): JSX.Element | null {
   if (!value) return null;
@@ -32,21 +32,32 @@ export function RecordDetail({
   record: CatalogueRecord;
   facets: RecordFacets | null;
 }): JSX.Element {
-  // The links are shown raw, one row per entry the catalogue published, sorted by
-  // protocol then URL then name. Grouping or tidying them here would hide what the
-  // source actually looks like — the repetition, the empty names, the same endpoint
-  // under four spellings — and that mess is worth seeing.
-  const links = useMemo(
-    () =>
-      [...record.links].sort(
-        (a, b) =>
-          cmp(a.type, b.type) ||
-          cmp(a.url, b.url) ||
-          cmp(a.name, b.name) ||
-          cmp(a.description, b.description),
-      ),
-    [record.links],
-  );
+  // The links are shown raw, one row per entry the catalogue published — nothing is
+  // folded, because the repetition, the empty names and the same endpoint under four
+  // spellings are what the source actually looks like. They are only *sectioned* by
+  // protocol: a record publishing 178 links repeats its type on 178 rows, which is a
+  // column of noise on a table that is already too wide for a phone. The heading says
+  // it once per group instead, and the rows keep their order — URL, then name, then
+  // description — inside it.
+  const groups = useMemo(() => {
+    const byType = new Map<string, Link[]>();
+    for (const link of record.links) {
+      const group = byType.get(link.type);
+      if (group) group.push(link);
+      else byType.set(link.type, [link]);
+    }
+    return [...byType.entries()]
+      .sort(([a], [b]) => cmp(a, b))
+      .map(([type, entries]) => ({
+        type,
+        entries: entries.sort(
+          (a, b) =>
+            cmp(a.url, b.url) ||
+            cmp(a.name, b.name) ||
+            cmp(a.description, b.description),
+        ),
+      }));
+  }, [record.links]);
 
   return (
     <div className="record-body">
@@ -151,33 +162,43 @@ export function RecordDetail({
         </>
       ) : null}
 
-      {links.length ? (
+      {record.links.length ? (
         <>
-          <h3 className="section-title">{`Access links (${fmt(links.length)})`}</h3>
-          <div className="table-wrap">
-            <table className="table links-table">
-              <thead>
-                <tr>
-                  <th scope="col">Protocol</th>
-                  <th scope="col">URL</th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {links.map((link, position) => (
-                  <tr key={`${link.type}-${link.url}-${link.name}-${position}`}>
-                    <td className="protocol">{link.type}</td>
-                    <td className="url">
-                      <External href={link.url}>{link.url}</External>
-                    </td>
-                    <td className="name">{link.name || "—"}</td>
-                    <td>{link.description || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <h3 className="section-title">
+            {`Access links (${fmt(record.links.length)})`}
+          </h3>
+          {groups.map((group) => (
+            <section key={group.type}>
+              <h4 className="link-group">
+                {group.type}
+                <span className="link-group-count">
+                  {`(${fmt(group.entries.length)})`}
+                </span>
+              </h4>
+              <div className="table-wrap">
+                <table className="table links-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">URL</th>
+                      <th scope="col">Name</th>
+                      <th scope="col">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.entries.map((link, position) => (
+                      <tr key={`${link.url}-${link.name}-${position}`}>
+                        <td className="url">
+                          <External href={link.url}>{link.url}</External>
+                        </td>
+                        <td className="name">{link.name || "—"}</td>
+                        <td>{link.description || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          ))}
         </>
       ) : (
         <p className="caption">This record publishes no access link at all.</p>

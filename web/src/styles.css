@@ -488,16 +488,33 @@ figcaption { margin-bottom: 12px; }
    page sideways. */
 .table-wrap { overflow-x: auto; margin-top: 12px; }
 
-/* The links table is deliberately raw: one row per published entry, no grouping,
-   no tidying. Seeing the same endpoint repeated 109 times is the point. */
-.links-table { table-layout: fixed; min-width: 34rem; font-size: 0.8rem; }
+/* The links table is deliberately raw: one row per published entry, no folding,
+   no tidying. Seeing the same endpoint repeated 109 times is the point. Only the
+   protocol moved out, from a column repeated on every row to one heading per group. */
+.links-table { table-layout: fixed; min-width: 30rem; font-size: 0.8rem; }
 .links-table th, .links-table td { padding: 5px 8px; vertical-align: top; }
-/* Wide enough for `documentation`, the longest link type, plus its padding. */
-.links-table th:first-child, .links-table td.protocol { width: 8.75rem; }
-.links-table td.protocol { color: var(--ink-2); font-family: ui-monospace, monospace; }
 .links-table td.name { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
-.links-table td.url { width: 40%; }
+.links-table td.url { width: 45%; }
 .links-table td.url a { overflow-wrap: anywhere; }
+
+/* The heading carries what the first column used to: the protocol, verbatim, and
+   how many entries the catalogue published under it. */
+.link-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 18px 0 0;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.link-group-count {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
 
 .sources { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-bottom: 12px; font-size: 0.85rem; }
 
