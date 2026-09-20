@@ -1,0 +1,34 @@
+{
+  "name": "gpf-catalogue-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Overview site of the Géoplateforme pivot catalogue: React, react-router, no runtime dependency beyond the two JSON documents it reads.",
+  "author": "Claude (Anthropic)",
+  "contributors": [
+    "Mickaël Borne"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.6",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.1.0"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}

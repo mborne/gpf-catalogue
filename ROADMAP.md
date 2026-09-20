@@ -111,6 +111,18 @@ answers, and it publishes what the source metadata is worth, field by field.
       list from the model, so a new field is counted without being registered anywhere
 - [x] Unit tests on the aggregation, running offline like the parser tests, including the
       byte stability of `stats.json`
+- [x] **Every view has a URL** — the overview was one document with three tab buttons
+      and a `<details>` per record, so nothing in it could be linked to: not a record,
+      not a search, not a tab, and the Back button did nothing. It is now a React
+      application with `react-router` and four routes — `/overview`, `/records`,
+      `/records/{fileIdentifier}`, `/quality` — with the filters carried in the query
+      string ([issue #2](https://github.com/mborne/gpf-catalogue/issues/2)). The site
+      stays static data: `catalogue.json` and `stats.json` published beside it and read
+      in the browser, React bundled rather than fetched from a CDN, and a `404.html`
+      copy of the entry document so a link to a record survives being pasted somewhere.
+      The cost is a build step the repository did not have — npm and Vite next to uv —
+      and it is what a record page is worth: phase 4 will want to hand a model and a
+      human the same link to a resource
 - [x] **Links kept flat, with their descriptions** — browsing the overview showed the
       model collapsing every entry of an endpoint into one, which dropped 1 179 layer
       names and left a whole WFS service named `BDTOPO_V3:aerodrome`. Entries are now one
@@ -119,8 +131,15 @@ answers, and it publishes what the source metadata is worth, field by field.
 
 Answered along the way: whether an overview needs a server. It does not, at this size —
 1.2 MB of `catalogue.json` filters in the browser faster than a round trip, and the whole
-site is five files that any static host serves. The trade flips somewhere in the
-thousands of records, which is phase 4, not a bigger page.
+site is a bundle and two JSON documents that any static host serves. The trade flips
+somewhere in the thousands of records, which is phase 4, not a bigger page.
+
+Answered along the way: whether a router needs one either. Also no, but it needs two
+things a single page did not — the deployment prefix at build time, because a route is a
+real path, and a `404.html` that *is* the application, because a static host has no
+rewrite rule. Both are written down in [docs/overview.md](docs/overview.md); the second
+means a cold deep link answers 404 with the right document, which no static host can
+improve on.
 
 Answered along the way, twice over: where aggregation belongs. Not in the model. The
 catalogue publishes one entry per layer, and collapsing them looked like tidying until
@@ -170,7 +189,8 @@ each rule is written down in [docs/overview.md](docs/overview.md).
       `catalogue_overview` answering from the phase 3 aggregates
 - [ ] Decide how it relates to [geocontext](https://github.com/ignfab/geocontext): separate
       server, or a catalogue tool contributed there
-- [ ] Return links a model can act on, so search results lead to actual data access
+- [ ] Return links a model can act on, so search results lead to actual data access —
+      including the record's own page, which phase 3 gave it an address for
 
 ## Phase 5 — Keep it current
 

@@ -18,6 +18,12 @@ dist/
 # Built overview site (rebuildable from data/, see docs/overview.md).
 /site/
 
+# Front end dependencies and bundle (rebuildable with "npm ci && npm run build",
+# see docs/overview.md). The lock file next to them *is* versioned: it is what
+# makes the published bundle reproducible.
+/web/node_modules/
+/web/dist/
+
 # Tooling caches
 .pytest_cache/
 .ruff_cache/
