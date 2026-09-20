@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Author: Claude (Anthropic) - this fixture is AI generated, see docs/init.md. -->
-<!-- A record without title nor abstract, as published by the catalogue. -->
+<!-- A record without title nor abstract, as published by the catalogue. Its
+     lineage statement is present but empty, the shape 103 records publish. -->
 <mdb:MD_Metadata
     xmlns:mdb="http://standards.iso.org/iso/19115/-3/mdb/2.0"
     xmlns:mcc="http://standards.iso.org/iso/19115/-3/mcc/1.0"
     xmlns:mri="http://standards.iso.org/iso/19115/-3/mri/1.0"
+    xmlns:mrl="http://standards.iso.org/iso/19115/-3/mrl/2.0"
     xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0">
   <mdb:metadataIdentifier>
     <mcc:MD_Identifier>
@@ -23,4 +25,11 @@
   <mdb:identificationInfo>
     <mri:MD_DataIdentification/>
   </mdb:identificationInfo>
+  <mdb:resourceLineage>
+    <mrl:LI_Lineage>
+      <mrl:statement>
+        <gco:CharacterString></gco:CharacterString>
+      </mrl:statement>
+    </mrl:LI_Lineage>
+  </mdb:resourceLineage>
 </mdb:MD_Metadata>

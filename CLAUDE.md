@@ -119,6 +119,20 @@ corrupts the mirror.
   service endpoint itself and
   must stay typed `wfs`/`wms`/…; only a static `capabilities.xml` file is `capabilities`.
   Typing the query as a document would hide the endpoint from a consumer asking for the WFS.
+- **`bbox` is the union, `extents` is the truth.** The catalogue publishes one
+  `gex:EX_Extent` per territory: `IGNF_BD-TOPO` declares eight, named and coded
+  `FXX`…`MAF`. Their union reaches from the Caribbean to Réunion, 65 times the area
+  described, and `ENR_CONSO-ELECTRICITE-COMMUNE` gets a union **3 519 times** its four
+  territories combined — 47 records declare more than one box. `bbox` is kept as the
+  cheap first filter and is recomputed from `extents`, never read separately. An extent
+  with no usable box produces no entry, which is how the 115 purely *temporal* extents
+  ("Dates de publication") stay out of the geography; an extent with no description
+  keeps `name: null`, like the 167 anonymous ones. Do not collapse or dissolve the
+  zones: grouping belongs to the consumer, as it does for links.
+- **`edition` is read on the resource citation only.** `cit:edition` also hangs under
+  every `mrd:distributionFormat` citation, where it says `inapplicable`: `IGNF_BD-TOPO`
+  publishes 695 of them against the one that matters, `3.5`. This is the nested citation
+  trap, in a second place.
 - **Links stay flat, one per published entry.** The catalogue publishes one
   `CI_OnlineResource` per *layer*, all sharing the endpoint URL and differing by
   `cit:name` and `cit:description`: `IGNF_BD-TOPO` publishes 109 WFS entries for one URL,
@@ -237,4 +251,10 @@ Not bugs in this code — tracked under "Known issues left open" in [ROADMAP.md]
 - Some records glue an anchor's `xlink:href` onto its own label. Only an exact trailing
   repeat is stripped (`_strip_repeated_href`); anything else is kept verbatim.
 - `AnyText` CQL filtering is broken server-side (`UnknownFormatConversionException` on `%`).
+- One record publishes the maintenance frequency `quaterly` (sic) where the ISO code list
+  says `quarterly`. `updateFrequency` is therefore a plain `str` and not a `StrEnum`: the
+  code is kept verbatim, because rejecting the record and repairing the spelling are both
+  worse than reporting what the catalogue says.
+- 103 records publish `mrl:statement` and 14 publish `mri:purpose` with no text at all,
+  so `lineage` and `purpose` are `null` on them — present in the XML, empty in substance.
 - Test records (`test`, `TEST`, `1`, `lls`, `blba lbla`) are published alongside real ones.

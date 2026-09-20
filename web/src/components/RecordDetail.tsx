@@ -60,6 +60,18 @@ export function RecordDetail({
         <External href={cswUrl(record.fileIdentifier)}>metadata record (XML)</External>
       </p>
 
+      {/* The image is served by the catalogue, i.e. a third party: it is shown as
+          an image and nothing more — no referrer, and never injected as markup. */}
+      {record.thumbnailUrl ? (
+        <img
+          alt=""
+          className="thumbnail"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          src={record.thumbnailUrl}
+        />
+      ) : null}
+
       {record.abstract ? (
         <div className="abstract">
           <Markdown text={record.abstract} />
@@ -67,6 +79,7 @@ export function RecordDetail({
       ) : null}
 
       <dl className="pairs">
+        <Pair term="Edition" value={record.edition} />
         <Pair term="Producer, as published" value={record.producer} />
         <Pair term="Contact" value={record.contactEmail} />
         <Pair term="Publisher (email domain)" value={facets?.publisher} />
@@ -77,6 +90,7 @@ export function RecordDetail({
         <Pair term="Created" value={record.created} />
         <Pair term="Published" value={record.published} />
         <Pair term="Revised" value={record.revised} />
+        <Pair term="Update frequency" value={record.updateFrequency} />
         {record.temporalStart || record.temporalEnd ? (
           <Pair
             term="Covers"
@@ -84,7 +98,14 @@ export function RecordDetail({
           />
         ) : null}
         {record.bbox ? (
-          <Pair term="Bounding box (W, S, E, N)" value={record.bbox.join(", ")} />
+          <Pair
+            term={
+              record.extents.length > 1
+                ? `Bounding box (W, S, E, N), union of ${fmt(record.extents.length)} extents`
+                : "Bounding box (W, S, E, N)"
+            }
+            value={record.bbox.join(", ")}
+          />
         ) : null}
         <Pair
           term="Topic categories"
@@ -92,7 +113,43 @@ export function RecordDetail({
         />
         <Pair term="INSPIRE themes" value={record.inspireThemes.join(", ")} />
         <Pair term="Keywords" value={record.keywords.join(", ")} />
+        <Pair term="Purpose" value={record.purpose} />
+        <Pair term="Lineage" value={record.lineage} />
       </dl>
+
+      {/* Only worth a table when the union hides something: a single extent is
+          already fully described by the bounding box above. */}
+      {record.extents.length > 1 ? (
+        <>
+          <h3 className="section-title">{`Extents (${fmt(record.extents.length)})`}</h3>
+          <p className="caption">
+            The bounding box above is the union of these. It can be far larger than
+            what the resource covers.
+          </p>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th scope="col">Zone</th>
+                  <th scope="col">Code</th>
+                  <th scope="col">W, S, E, N</th>
+                </tr>
+              </thead>
+              <tbody>
+                {record.extents.map((extent, position) => (
+                  <tr key={`${extent.code}-${extent.name}-${position}`}>
+                    <td>{extent.name || "—"}</td>
+                    <td className="name" title={extent.codeSpace || undefined}>
+                      {extent.code || "—"}
+                    </td>
+                    <td className="name">{extent.bbox.join(", ")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : null}
 
       {links.length ? (
         <>

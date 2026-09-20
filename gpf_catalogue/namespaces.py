@@ -21,6 +21,8 @@ LAN = "http://standards.iso.org/iso/19115/-3/lan/1.0"
 GCO = "http://standards.iso.org/iso/19115/-3/gco/1.0"
 GCX = "http://standards.iso.org/iso/19115/-3/gcx/1.0"
 MRD = "http://standards.iso.org/iso/19115/-3/mrd/1.0"
+MRL = "http://standards.iso.org/iso/19115/-3/mrl/2.0"
+MMI = "http://standards.iso.org/iso/19115/-3/mmi/1.0"
 MCO = "http://standards.iso.org/iso/19115/-3/mco/1.0"
 GEX = "http://standards.iso.org/iso/19115/-3/gex/1.0"
 
@@ -42,6 +44,8 @@ NAMESPACES = {
     "gco": GCO,
     "gcx": GCX,
     "mrd": MRD,
+    "mrl": MRL,
+    "mmi": MMI,
     "mco": MCO,
     "gex": GEX,
     "gml": GML,

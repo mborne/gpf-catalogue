@@ -64,26 +64,35 @@ cat data/csw/IGNF_BD-TOPO.json
   "type": "series",
   "title": "BD TOPO®",
   "abstract": "La BD TOPO® version 3.5 contient une description vectorielle 3D (structurée en objets) des éléments du territoire et de ses infrastructures, de précision métrique. [...]",
+  "edition": "3.5",
   "producer": "INSTITUT NATIONAL DE L'INFORMATION GEOGRAPHIQUE ET FORESTIERE (IGN)",
   "contactEmail": "contact.geoservices@ign.fr",
   "inspireThemes": ["Altitude", "Bâtiments", "Hydrographie", "..."],
   "topicCategories": ["biota", "boundaries", "elevation", "..."],
+  "purpose": "La BD TOPO® permet de couvrir de manière cohérente l'ensemble des entités géographiques [...]",
   "spatialScope": "national",
   "bbox": [-63.16, -21.4, 55.85, 51.1],
+  "extents": [
+    { "name": "France métropolitaine", "code": "FXX", "codeSpace": "ISO 3166 alpha 3", "bbox": [-5.15, 41.32, 9.57, 51.1] },
+    { "name": "Guadeloupe", "code": "GLP", "codeSpace": "ISO 3166 alpha 3", "bbox": [-61.82, 15.82, -60.99, 16.52] }
+  ],
   "created": "2002-12-15",
   "revised": "2026-07-31",
+  "updateFrequency": "quarterly",
+  "lineage": "La géométrie des objets de la BD TOPO® provient de sources différentes [...]",
   "licence": "Licence Ouverte / Open License (compatible ODC-BY, CC-BY 2.0)",
   "links": [
     { "type": "download", "url": "https://data.geopf.fr/telechargement/resource/BDTOPO", "name": "BD TOPO® V3", "description": null },
     { "type": "wfs", "url": "https://data.geopf.fr/wfs/ows?...", "name": "BDTOPO_V3:batiment", "description": "BD TOPO® V3 batiment" }
   ],
+  "thumbnailUrl": "https://data.geopf.fr/annexes/ressources/metadata/thumbnail/vignette-bd-topo.jpg",
   "suspectedTest": false
 }
 ```
 
-Shortened here — the real record carries 178 links, one per published layer, and weighs
-39 KB where the source is 201 813 bytes. The whole catalogue is also written as a single
-`data/catalogue.json`, 1.2 MB for 326 records.
+Shortened here — the real record carries 178 links, one per published layer and eight
+extents, one per territory, and weighs 48 KB where the source is 201 813 bytes. The whole
+catalogue is also written as a single `data/catalogue.json`, 1.5 MB for 326 records.
 
 ## Pipeline
 
@@ -111,24 +120,33 @@ made it, and how to reach the data.
 | `type` | `dataset` \| `series` \| `service` | 100 % | Kind of resource described |
 | `title` | `string` \| `null` | 99.7 % | Human readable name |
 | `abstract` | `string` \| `null` | 100 % | Free text description |
+| `edition` | `string` \| `null` | 42.6 % | Version of the resource, from its own citation |
 | `producer` | `string` \| `null` | 100 % | Organisation responsible for the resource |
 | `contactEmail` | `string` \| `null` | 98.2 % | Contact address of the producer |
 | `keywords` | `string[]` | 77.0 % | Free and controlled keywords, deduplicated |
 | `inspireThemes` | `string[]` | 56.4 % | Keywords from the GEMET INSPIRE thesaurus, usable as a facet |
 | `topicCategories` | `string[]` | 93.3 % | ISO topic categories, e.g. `environment` |
+| `purpose` | `string` \| `null` | 39.6 % | What the resource is for, where `abstract` says what it holds |
 | `spatialScope` | `national` \| `regional` \| … \| `null` | 41.7 % | INSPIRE spatial scope, read from the code the record cites |
-| `bbox` | `[w, s, e, n]` \| `null` | 92.3 % | Geographic extent, WGS 84, GeoJSON order |
+| `bbox` | `[w, s, e, n]` \| `null` | 92.3 % | Union of `extents`: a cheap filter, and a coarse one |
+| `extents` | `Extent[]` | 92.3 % | One entry per declared zone, with the name and code published for it |
 | `temporalStart` / `temporalEnd` | `string` \| `null` | 34 % | Period covered by the resource |
 | `created` / `published` / `revised` | `string` \| `null` | 57 / 47 / 29 % | Dates of the resource |
+| `updateFrequency` | `string` \| `null` | 96.6 % | Maintenance frequency code, kept verbatim |
+| `lineage` | `string` \| `null` | 58.6 % | How the resource was produced, and with what accuracy |
 | `licence` | `string` \| `null` | 50.0 % | Licence or use condition, as published |
 | `accessConstraint` | `string` \| `null` | 46.0 % | Limitation on public access |
 | `links` | `Link[]` | 98.5 % | Typed access endpoints, one per published entry |
+| `thumbnailUrl` | `string` \| `null` | 63.2 % | Preview image published for the resource |
 | `suspectedTest` | `boolean` | — | The record looks like a test publication |
 
 A `Link` is `{ "type", "url", "name", "description" }`, typed `wfs`, `wms`, `wmts`,
 `tms`, `download`, `capabilities`, `documentation` or `other`. The catalogue leaves
 `cit:protocol` empty on 85 % of its links, so the type is inferred from the URL when it
-is missing.
+is missing. An `Extent` is `{ "name", "code", "codeSpace", "bbox" }`: `IGNF_BD-TOPO`
+declares eight, from "France métropolitaine" to "Saint-Martin". Their union — the `bbox`
+above — reaches from the Caribbean to Réunion, 65 times the area actually covered, which
+is why both are published.
 
 **Links are kept flat, one per published entry.** The catalogue publishes one entry per
 *layer*, all sharing the endpoint URL and differing by name and description:
