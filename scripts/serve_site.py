@@ -56,7 +56,15 @@ def main() -> int:
             f"{args.site} holds no built site, run 'uv run scripts/build_site.py' first"
         )
 
-    serve(args.site, port=args.port, host=args.host)
+    try:
+        serve(args.site, port=args.port, host=args.host)
+    except OSError as error:
+        # Almost always a port already taken by something else. A traceback is
+        # not what a preview command owes anyone.
+        raise SystemExit(
+            f"cannot serve on {args.host}:{args.port}: "
+            f"{error.strerror or error} — try another --port"
+        ) from error
     return 0
 
 
