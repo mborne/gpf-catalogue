@@ -10,8 +10,10 @@ dist/
 # Virtual environments
 .venv/
 
-# Harvested and generated catalogue (rebuildable, see README)
-data/
+# Harvested and generated catalogue (rebuildable, see README).
+# Anchored with a leading slash: an unanchored "data/" also matches tests/data/,
+# which holds the sample records the test suite cannot run without.
+/data/
 
 # Tooling caches
 .pytest_cache/
