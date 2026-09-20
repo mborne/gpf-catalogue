@@ -402,7 +402,9 @@ figcaption { margin-bottom: 12px; }
 
 /* One row per result, and the whole row is the link to the record's own page.
    The previous site expanded the record in place, which showed the same content
-   but left it with no address. */
+   but left it with no address. The row carries no marker: the triangle it used
+   to show was the disclosure arrow of that `<details>`, and it announced an
+   expansion that no longer happens. */
 .record-link {
   display: flex;
   flex-wrap: wrap;
@@ -418,7 +420,6 @@ figcaption { margin-bottom: 12px; }
 }
 
 .record-link:hover { border-color: var(--bar); }
-.record-link::before { content: "\25B8"; color: var(--muted); font-size: 0.8em; flex: 0 0 auto; }
 
 /* Both can be long — a title of 90 characters, an identifier of 48 — and a flex
    item does not shrink below its content unless it is told it may. */
