@@ -1,0 +1,16 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+
+# Harvested and generated catalogue (rebuildable, see README)
+data/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/

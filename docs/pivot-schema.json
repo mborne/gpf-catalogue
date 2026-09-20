@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "ResourceType": {
+      "description": "Kind of resource described by a metadata record.\n\nValues mirror the ISO `MD_ScopeCode` code list, restricted to the values\nactually used by the Géoplateforme catalogue.",
+      "enum": [
+        "dataset",
+        "series",
+        "service"
+      ],
+      "title": "ResourceType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A resource of the Géoplateforme catalogue, flattened.\n\nAttributes:\n    file_identifier: Stable identifier of the metadata record, as used by the\n        CSW service (`GetRecordById&ID=...`) and by cartes.gouv.fr URLs.\n    type: Kind of resource described by the record.\n    title: Human readable name of the resource, `None` when the source record\n        does not provide one. A handful of records of the catalogue have no\n        title at all; they are kept rather than dropped, so that the gap stays\n        visible instead of being silently fabricated from the identifier.\n    abstract: Free text description of the resource, `None` when the source\n        record does not provide one.",
+  "properties": {
+    "fileIdentifier": {
+      "description": "Stable identifier of the metadata record, usable to fetch it again from the CSW service or to build its cartes.gouv.fr URL.",
+      "title": "Fileidentifier",
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/ResourceType",
+      "description": "Kind of resource described by the record."
+    },
+    "title": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Human readable name of the resource, null when it has none.",
+      "title": "Title"
+    },
+    "abstract": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Free text description of the resource, null when it has none.",
+      "title": "Abstract"
+    }
+  },
+  "required": [
+    "fileIdentifier",
+    "type"
+  ],
+  "title": "CatalogueRecord",
+  "type": "object"
+}
