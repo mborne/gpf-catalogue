@@ -7,11 +7,13 @@ import { useCatalogueState } from "../catalogue";
 import { fmt } from "../format";
 import { toggleTheme } from "../theme";
 
-/** The three sections, in the order they answer questions about the catalogue. */
+/** The sections, in the order they answer questions about the catalogue — and
+    last, the one that answers what the site itself is. */
 const TABS = [
   { to: "/overview", label: "Overview" },
   { to: "/records", label: "Records" },
   { to: "/quality", label: "Quality" },
+  { to: "/about", label: "About" },
 ];
 
 /* Ahead of every figure on the site, because a catalogue overview published by an
