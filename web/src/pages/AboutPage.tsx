@@ -81,16 +81,24 @@ export function AboutPage(): JSX.Element {
           <a href="https://claude.ai" rel="noopener noreferrer" target="_blank">
             Claude
           </a>
-          , Anthropic's assistant, under review. The repository says so in each file,
-          and records how it was done.
+          , Anthropic's assistant, under review. Every generated file says so in a
+          line of its own, and the repository records how it was done.
+        </p>
+      </section>
+
+      <section className="card">
+        <h2>Source code</h2>
+        <p className="prose-p">
+          Everything behind this site is public — the harvester, the parser, the pivot
+          model, this page, and the whole history of the three:{" "}
+          <a href={`${REPO}#readme`} rel="noopener noreferrer" target="_blank">
+            github.com/mborne/gpf-catalogue
+          </a>
+          . The two documents it publishes,{" "}
+          <code>catalogue.json</code> and <code>stats.json</code>, can be downloaded
+          without cloning anything.
         </p>
         <ul className="prose">
-          <li>
-            <a href={REPO} rel="noopener noreferrer" target="_blank">
-              <code>mborne/gpf-catalogue</code>
-            </a>{" "}
-            — the pipeline, this front end, and the whole history of both.
-          </li>
           <li>
             <a
               href={`${REPO}/blob/main/docs/why.md`}
