@@ -117,6 +117,11 @@ bucketed, for the reason the year histogram leaves undated records out: an undec
 scope is not a scope, and a bar labelled *undeclared* would be the tallest one on a
 chart about extent.
 
+On the Records tab it is a facet, and a badge next to the resource type on every
+record summary — the question *national product or local data?* is asked while scanning
+the list, not after opening a record. A record citing no scope carries no badge, rather
+than one reading *unknown*, which is the same choice the chart makes.
+
 The label is not what is counted. 6 records cite `…/SpatialScope/global` under the
 label "National", so the keyword `National` — the most frequent of the catalogue, 123
 records — and the code `national` — 118 records — are not the same set. See

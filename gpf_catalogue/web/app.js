@@ -385,6 +385,14 @@ function recordCard(record) {
   const title = el("span", "record-title", record.title || "(no title published)");
   if (!record.title) title.classList.add("untitled");
   summary.append(title, el("span", "badge", record.type));
+  // The scope rides next to the type rather than sitting in the detail list below:
+  // "national or local?" is asked while scanning the list, not after opening a
+  // record. Only 136 of the 326 records cite one, so most summaries carry none.
+  if (record.spatialScope) {
+    const scope = el("span", "badge", record.spatialScope);
+    scope.title = "INSPIRE spatial scope";
+    summary.appendChild(scope);
+  }
   if (record.suspectedTest) summary.appendChild(el("span", "badge warn", "suspected test"));
   summary.appendChild(el("span", "record-id", record.fileIdentifier));
   card.appendChild(summary);
@@ -428,7 +436,6 @@ function recordCard(record) {
   if (record.temporalStart || record.temporalEnd) {
     pair(pairs, "Covers", `${record.temporalStart || "?"} → ${record.temporalEnd || "?"}`);
   }
-  pair(pairs, "Spatial scope", record.spatialScope);
   if (record.bbox) pair(pairs, "Bounding box (W, S, E, N)", record.bbox.join(", "));
   if ((record.topicCategories || []).length) {
     pair(pairs, "Topic categories", record.topicCategories.join(", "));
