@@ -162,6 +162,17 @@ main {
 
 .disclaimer strong { color: var(--ink); }
 
+/* The warning itself, always on screen, and the handle that opens the rest. The
+   marker is the browser's own triangle: here it does announce an expansion. */
+.disclaimer > summary {
+  cursor: pointer;
+  list-style-position: outside;
+}
+
+.disclaimer > summary::marker { color: var(--muted); }
+.disclaimer > summary:hover strong { color: var(--accent-warn); }
+.disclaimer > p { margin: 8px 0 0; }
+
 /* On its own line: run on after the sentence about cartes.gouv.fr, it read as
    part of it. */
 .disclaimer-legal { display: block; width: fit-content; margin-top: 8px; }
