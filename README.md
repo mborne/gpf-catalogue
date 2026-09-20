@@ -64,6 +64,7 @@ cat data/csw/IGNF_BD-TOPO.json
   "contactEmail": "contact.geoservices@ign.fr",
   "inspireThemes": ["Altitude", "Bâtiments", "Hydrographie", "..."],
   "topicCategories": ["biota", "boundaries", "elevation", "..."],
+  "spatialScope": "national",
   "bbox": [-63.16, -21.4, 55.85, 51.1],
   "created": "2002-12-15",
   "revised": "2026-07-31",
