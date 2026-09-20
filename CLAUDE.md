@@ -29,10 +29,23 @@ uv run scripts/harvest.py --only IGNF_BD-TOPO --force   # refresh one record
 uv run scripts/parse.py                     # *.xml -> *.json + data/catalogue.json
 uv run scripts/stats.py                     # catalogue.json -> data/stats.json
 uv run scripts/stats.py --format markdown   # the coverage table quoted by the docs
-uv run scripts/build_site.py                # assemble site/
-uv run python -m http.server -d site 8000   # serve it; file:// does not work
+uv run scripts/build_site.py                # assemble site/ (needs web/dist)
+uv run scripts/serve_site.py                # serve it; file:// does not work
 uv run scripts/export_schema.py             # regenerate docs/pivot-schema.json
+
+npm ci --prefix web                         # front end dependencies (node 24)
+npm run build --prefix web                  # tsc + vite -> web/dist
+npm run dev --prefix web                    # vite dev server, on the site/ data
+VITE_BASE=/gpf-catalogue/ npm run build --prefix web   # what the Pages workflow does
 ```
+
+`scripts/build_site.py` fails until `web/dist` exists; `npm run build` is not optional.
+Two tests read that bundle and **skip** when it is missing, so a green `pytest` on a
+machine that never ran npm is not proof the site builds.
+
+`uv run python -m http.server -d site 8000` still serves the entry page, but answers 404
+on `/records/{fileIdentifier}` — that is a route, not a file. `scripts/serve_site.py`
+applies the rule GitHub Pages applies through `404.html`.
 
 Every script takes `--data-dir`, `-v`/`--verbose`, and `--help`. `harvest.py` and `parse.py`
 exit 1 when any record failed — that is expected on a full run (see "Known anomalies" below),
@@ -52,7 +65,9 @@ CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/c
                                                            (CatalogueRecord)
                                                                   │
                                             stats.py ─────────────┤──> data/stats.json
-                                            site.py + web/ ───────┴──> site/
+                                            site.py ──────────────┴──> site/
+                                                ▲
+                            web/ ──vite──> web/dist
 ```
 
 `catalogue.json` is written *beside* `data_dir`, never inside it: a record identified
@@ -66,12 +81,15 @@ CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/c
 | `gpf_catalogue/model.py` | The pivot model (`CatalogueRecord`, Pydantic v2) — the contract downstream consumers read. |
 | `gpf_catalogue/namespaces.py` | The ISO 19115-3 prefix map; ISO split the old single `gmd` namespace into a dozen. |
 | `gpf_catalogue/stats.py` | `compute_stats(list[CatalogueRecord]) -> CatalogueStats`, **pure** like `parse_record`. Aggregates, field coverage, and the derived publisher / licence family / year. |
-| `gpf_catalogue/site.py`, `web/` | Assembly of the static overview site, and its three vanilla HTML/CSS/JS files. No template engine, no CDN, no runtime dependency. |
+| `gpf_catalogue/site.py` | Assembly of the static overview site: copy `web/dist` + the two JSON documents into `site/`, and write `404.html`. |
+| `gpf_catalogue/serve.py` | A local static server that answers the application's routes with the entry document, which `python -m http.server` cannot. |
+| `web/` | The front end: React, react-router and Vite, in TypeScript. Four routes — `/overview`, `/records`, `/records/{fileIdentifier}`, `/quality`. No CDN: React is bundled into the assets the site carries. See [docs/overview.md](docs/overview.md). |
 | `gpf_catalogue/harvest.py`, `cli.py` | Orchestration and shared argparse/logging helpers. |
 | `scripts/*.py` | Thin CLI wrappers: argparse + call the library + print a summary + exit code. |
-| `.github/workflows/pages.yml` | Harvests, parses and publishes the site on GitHub Pages, weekly and on push. It caches `data/csw` and tolerates the expected non-zero exits, but refuses to publish fewer than 300 records. |
+| `.github/workflows/pages.yml` | Builds the front end, harvests, parses and publishes the site on GitHub Pages, weekly and on push. It caches `data/csw` and tolerates the expected non-zero exits, but refuses to publish fewer than 300 records. `configure-pages` runs **before** the front end build, because the bundle needs the deployment prefix. |
 
-Logic belongs in `gpf_catalogue/`, never in `scripts/`.
+Logic belongs in `gpf_catalogue/`, never in `scripts/`. Front end logic belongs in
+`web/src/`, never in `gpf_catalogue/site.py`, which only copies files.
 
 ### Invariants that look like quirks
 
@@ -122,6 +140,18 @@ corrupts the mirror.
   left raw because 155 carry `*` or `_` inside a layer name. The renderer builds DOM nodes
   and turns anything unrecognised into a text node — the text comes from a third party
   service, so a `<script>` in an abstract must be displayed, not run.
+- **A route is a real path, and the site is still static.** `/records/{fileIdentifier}`
+  is what the rewrite was for, and it costs two things. The bundle is built with its
+  deployment prefix (`VITE_BASE`, `/` by default, `/gpf-catalogue/` on Pages) and the
+  router takes the same value as its basename — relative asset URLs would resolve
+  against the record instead of the site root. And `build_site` writes `404.html` as a
+  byte copy of `index.html`, because a static host has no rewrite rule: that copy is
+  what makes a pasted link to a record boot the application. Do not "fix" the 404
+  status of that first response — the document is right and the code is the host's.
+- **The front end derives nothing, still.** Publisher, licence family and year are read
+  from `recordFacets` in `stats.json`. A filter is a query parameter, and a filter
+  change *replaces* the history entry rather than pushing one, so Back leads out of the
+  search rather than through a transcript of keystrokes.
 - **Output is deterministic.** No timestamp in `catalogue.json`, first value wins on every
   ambiguity, stable ordering. Two runs over the same mirror produce identical bytes, which
   is what makes catalogue drift diffable (ROADMAP phase 5). Do not add a `generated` field.
@@ -156,6 +186,9 @@ corrupts the mirror.
    registered anywhere.
 6. Add a shape to `tests/data/dataset.xml` and assert it in `tests/test_parse.py`. That
    fixture is meant to carry one example of every shape the live catalogue uses.
+7. Mirror it in `web/src/types.ts` — the reader's side of the same contract — and show it
+   on the record page (`web/src/components/RecordDetail.tsx`). `tsc` is run by
+   `npm run build`, so a field left out of the type is caught only where it is read.
 
 The rule for what enters the model: *a field enters when a search or a question needs it, not
 because ISO defines it.* The model is lossy by design; the raw XML stays next to it.

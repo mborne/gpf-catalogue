@@ -7,6 +7,11 @@
 # That costs about ten minutes for 333 records at 0.2 s apart, which is why the
 # mirror is cached between runs: the harvest skips records already on disk, so a
 # run triggered by a code change re-downloads nothing.
+#
+# It also needs `web/dist`, the built front end, which is not versioned either.
+# The routes are real paths, so the bundle has to know the prefix Pages serves the
+# repository under — `/gpf-catalogue/` — which is why `configure-pages` runs before
+# the front end is built rather than just before the upload.
 name: Publish the overview site
 
 on:
@@ -50,11 +55,42 @@ jobs:
         with:
           enable-cache: true
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
       - name: Install dependencies
         run: uv sync --frozen
 
+      - name: Install the front end dependencies
+        run: npm ci
+        working-directory: web
+
+      # Before the front end is built, because it is what says which prefix the
+      # routes live under.
+      - id: pages
+        uses: actions/configure-pages@v6
+
+      - name: Resolve the deployment prefix
+        # `base_path` is `/gpf-catalogue` for a project site and `/` for a user
+        # one; Vite wants it to end with a slash, and appending one blindly would
+        # turn `/` into `//`.
+        run: |
+          base="${{ steps.pages.outputs.base_path }}"
+          [ -z "$base" ] && base="/"
+          case "$base" in */) ;; *) base="$base/" ;; esac
+          echo "deploying under $base"
+          echo "VITE_BASE=$base" >> "$GITHUB_ENV"
+
+      - name: Build the front end
+        run: npm run build
+        working-directory: web
+
       # Cheap, offline, and it decides whether publishing is worth ten minutes of
-      # someone else's production service.
+      # someone else's production service. After the front end, because two of the
+      # tests read the bundle it produces and skip when it is missing.
       - name: Test
         run: uv run pytest -q
 
@@ -104,8 +140,6 @@ jobs:
 
       - name: Build the site
         run: uv run scripts/build_site.py
-
-      - uses: actions/configure-pages@v6
 
       # The site carries catalogue.json and stats.json, so publishing it also
       # publishes the data: https://<owner>.github.io/<repo>/catalogue.json

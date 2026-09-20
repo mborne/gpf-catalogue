@@ -2,7 +2,7 @@
 
 *Author: Claude (Anthropic) — this document is AI generated, see [init.md](init.md).*
 
-A static web page over the pivot catalogue: what the Géoplateforme publishes, what can
+A static site over the pivot catalogue: what the Géoplateforme publishes, what can
 be reached, and what the metadata is missing. It answers the second of the two questions
 this project started from — *what data is available?* — which a search index does not
 answer, and it is the phase 3 deliverable of [ROADMAP.md](../ROADMAP.md).
@@ -10,39 +10,84 @@ answer, and it is the phase 3 deliverable of [ROADMAP.md](../ROADMAP.md).
 ```bash
 uv run scripts/parse.py          # produces data/catalogue.json
 uv run scripts/stats.py          # aggregates it into data/stats.json
-uv run scripts/build_site.py     # assembles site/
-uv run python -m http.server -d site 8000
+npm ci --prefix web              # once: the front end dependencies
+npm run build --prefix web       # builds web/dist
+uv run scripts/build_site.py     # assembles site/ from web/dist + the data
+uv run scripts/serve_site.py     # serves it on http://localhost:8000
 ```
 
-Then open <http://localhost:8000>. The published copy, rebuilt weekly from the live
-service, is at <https://mborne.github.io/gpf-catalogue/>.
+The published copy, rebuilt weekly from the live service, is at
+<https://mborne.github.io/gpf-catalogue/>.
 
-The page is published by an individual and is **not** an IGN or Géoplateforme site. It
-says so on every tab, in a notice placed ahead of every figure it qualifies rather than in
-the footer: a catalogue overview is easy to mistake for the catalogue's own. The notice
-names the authoritative source, states that the figures are a weekly copy, and links the
-[mentions légales](https://mborne.github.io/mentions-legales/), which the footer repeats.
-The `<title>` carries the word too, since that is what a search result and a bookmark
-show. A plain `file://` open does not work: the page
-fetches its two JSON documents, and browsers refuse cross origin `file://` requests.
+The site is published by an individual and is **not** an IGN or Géoplateforme site. It
+says so on every page, in a notice placed ahead of every figure it qualifies rather than
+in the footer: a catalogue overview is easy to mistake for the catalogue's own. The
+notice names the authoritative source, states that the figures are a weekly copy, and
+links the [mentions légales](https://mborne.github.io/mentions-legales/), which the
+footer repeats. The `<title>` carries the word too, on every route, since that is what a
+search result and a bookmark show. A plain `file://` open does not work: the page fetches
+its two JSON documents, and browsers refuse cross origin `file://` requests.
 
-The site is **static and self contained**: no server, no build step, no runtime
-dependency, no CDN. It is three files of vanilla HTML, CSS and JavaScript next to the
-data they read, so it can be served from anywhere, including a release artifact
-(ROADMAP phase 5).
+The site is **static data**: `catalogue.json` and `stats.json` are published beside it
+and read in the browser. There is no API and no server-side rendering, and nothing is
+loaded from a network at runtime — React is bundled into the copied assets, not fetched
+from a CDN, which is what keeps the result a directory anyone can serve, zip or publish
+as a release artifact (ROADMAP phase 5).
+
+## A record has a URL
+
+Everything below is reachable by a link, which is what the [rewrite of
+issue #2](https://github.com/mborne/gpf-catalogue/issues/2) was for. The page used to be
+one document with three tab buttons and a `<details>` per record, so the only way to
+point at `IGNF_BD-TOPO` was a sentence describing which filters to type.
+
+| Route | What it shows |
+|---|---|
+| `/overview` | The dashboard. The entry point redirects here, so the section being looked at is always written in the URL |
+| `/records` | The faceted search. Every filter is a query parameter: `/records?theme=Altitude&link=wfs` |
+| `/records/{fileIdentifier}` | One record, on its own page |
+| `/quality` | The quality report |
+
+Two consequences are worth stating, because they are what the routes cost:
+
+- **The bundle has to know its deployment prefix.** A route is a real path, so
+  `/gpf-catalogue/records/IGNF_BD-TOPO` must resolve its script against the site root
+  rather than against the record — which rules out relative asset URLs. The prefix is a
+  build time value, `VITE_BASE`, defaulting to `/`; the Pages workflow reads it from
+  `actions/configure-pages` and hands the same value to the router as its basename.
+- **A static host has no rewrite rule.** The build writes `404.html` as a byte copy of
+  `index.html`, which is what GitHub Pages serves for an unknown path, so a link to a
+  record pasted into a browser boots the application and renders the record. The HTTP
+  status of that first response is 404 — the document is right, the code is the host's,
+  and no static host can do better without a rewrite rule. `python -m http.server` has
+  no such convention, which is why `scripts/serve_site.py` exists: it serves the entry
+  document for the application's routes and keeps a missing asset a real 404.
+
+The record page is also where the search links to: a result row is a link, not a
+disclosure triangle. And on the dashboard, a bar whose value is a facet leads to the
+records it counts — `/records?type=service` — so a number on a chart became a question
+the search answers rather than something to reproduce by hand in the filters.
 
 ## What it shows
 
-| Tab | Question it answers |
+| Page | Question it answers |
 |---|---|
 | **Overview** | What is in the catalogue: resources by type, by ISO topic category, by INSPIRE theme, by spatial scope, by publisher, by licence family, by publication year, and which access protocols are offered. |
-| **Records** | Which resource matches a need: full text filtering on title, abstract, identifier, keywords **and layer names**, combined with facets, and one detail panel per record listing every published link, raw. |
+| **Records** | Which resource matches a need: full text filtering on title, abstract, identifier, keywords **and layer names**, combined with facets. |
+| **One record** | Everything the catalogue published about one resource, including every access link, raw. |
 | **Quality** | What the source metadata is missing: coverage of every field of the pivot model, and the anomaly counts below. |
 
 Filtering happens in the browser, over `catalogue.json` as a whole — 1.2 MB for 326
 records, which is small enough that paging, a server and an index are all unnecessary at
-this size. When the catalogue grows past a few thousand records, that trade changes, and
-that is what phase 4 is for.
+this size. Both documents are loaded once, at the root, so moving from the search to a
+record refetches nothing. When the catalogue grows past a few thousand records, that
+trade changes, and that is what phase 4 is for.
+
+A filter change **replaces** the history entry rather than pushing one. Typing eight
+characters is one search, not eight, and Back has to lead out of the page — to the chart
+the filter came from, or to the record just closed — rather than through a transcript of
+keystrokes. The URL still carries the current state at every point, so it can be copied
+at any time.
 
 ## Derived values, and their rules
 
@@ -103,7 +148,7 @@ A year in which nothing was published keeps a column, at zero. The catalogue pub
 nothing between 1994 and 2008, and drawing those two as adjacent columns would draw a
 gap as if it were a step — the axis would no longer be time.
 
-The page reads each record's publisher, licence family and year from `recordFacets` in
+The site reads each record's publisher, licence family and year from `recordFacets` in
 `stats.json` rather than recomputing them. Two implementations of one rule are two
 rules, and the one in `stats.py` is the one the charts count with.
 
@@ -122,7 +167,7 @@ facet carries a **Not stated (190)** option next to the five codes, and it filte
 `spatialScope` being null. The count is `quality.undeclaredSpatialScope`, computed by
 `stats.py` rather than subtracted from the bars by the page.
 
-On the Records tab it is a facet, and a badge next to the resource type on every
+On the Records page it is a facet, and a badge next to the resource type on every
 record summary — the question *national product or local data?* is asked while scanning
 the list, not after opening a record. A record citing no scope carries no badge, rather
 than one reading *unknown*, which is the same choice the chart makes.
@@ -186,7 +231,7 @@ Grouping stays available to whoever wants it: the model is flat, so a consumer f
 on `(type, url)` in two lines. The reverse is not true, which is why the model does not
 fold it first.
 
-## The anomalies the quality tab reports
+## The anomalies the quality page reports
 
 Measured over the 326 records of the pivot catalogue, unless stated otherwise. These are
 properties of the source catalogue, not defects of this pipeline; they are published so
@@ -204,7 +249,7 @@ that they can be acted upon.
 | Records flagged as test publications | 14 |
 | Records published with no title | 1 |
 
-Three more sit outside the pivot catalogue, because they never reached it, and the tab
+Three more sit outside the pivot catalogue, because they never reached it, and the page
 names them as such:
 
 - **3 records cannot be served as ISO 19115-3**, the service failing on `mdb-full.xsl`:
@@ -214,6 +259,37 @@ names them as such:
 - **7 records are published with no identification block**, so they have neither title
   nor abstract and are counted as parse failures.
 - The full funnel is therefore **336 published → 333 harvested → 326 in the catalogue**.
+
+## How it is built
+
+`web/` is a npm project — React, react-router and Vite, in TypeScript — and
+`scripts/build_site.py` copies its `web/dist` next to the two JSON documents. So the
+site has a build step, which the repository did not have before, and two directories
+that are rebuildable rather than source: `web/node_modules` and `web/dist`, gitignored
+like `data/` and `site/`. `web/package-lock.json` **is** versioned: it is what makes the
+published bundle reproducible.
+
+| Path | What lives there |
+|---|---|
+| `web/src/types.ts` | The reader's side of the pivot model contract, mirroring `model.py` and `stats.py`. A field added to the model is added here too |
+| `web/src/catalogue.tsx` | Loading `catalogue.json` and `stats.json` once, and indexing them by identifier |
+| `web/src/filters.ts` | Which facets exist, which query parameter carries each, and what each one matches |
+| `web/src/markdown.tsx` | The abstract renderer |
+| `web/src/pages/` | One file per route |
+| `web/src/components/` | The charts, the layout, a record row and a record body |
+| `web/src/styles.css` | The stylesheet, carried over from the previous site rather than rewritten |
+
+The build is deterministic: Vite names its assets after their content, there is no
+timestamp anywhere, and two builds over the same catalogue produce the same bytes —
+which is what makes catalogue drift diffable (ROADMAP phase 5). `build_site.py` clears
+`site/assets` before copying, since a content hash means a rebuild writes new names
+beside the old ones rather than over them.
+
+Why React at all, for 326 records in a browser: four routes, a record page and a
+filter state in the query string are what the previous 660 lines of hand written DOM
+manipulation had started to be, without the router. React is the runtime cost —
+286 KB, 91 KB gzipped, bundled and served from the site — and the routes are what it
+buys. Nothing else changed: the same aggregates, the same rules, the same raw links.
 
 ## `stats.json`
 

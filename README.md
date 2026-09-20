@@ -45,10 +45,14 @@ uv sync                                 # install the dependencies
 uv run scripts/harvest.py --limit 5     # try on 5 records
 uv run scripts/harvest.py               # mirror the whole catalogue (~10 min)
 uv run scripts/parse.py                 # convert it to the pivot model
-uv run scripts/build_site.py            # build the overview site into site/
+npm ci --prefix web                     # the front end dependencies, once
+npm run build --prefix web              # build the overview application
+uv run scripts/build_site.py            # assemble the site into site/
+uv run scripts/serve_site.py            # open http://localhost:8000
 ```
 
-Both commands write to `data/`, which is not versioned: it is a rebuildable mirror.
+The harvest and the parse write to `data/`, which is not versioned: it is a rebuildable
+mirror. So are `web/node_modules` and `web/dist`.
 
 ```bash
 cat data/csw/IGNF_BD-TOPO.json
@@ -88,7 +92,8 @@ Shortened here — the real record carries 178 links, one per published layer, a
 | Harvest | `uv run scripts/harvest.py` | `GetRecords` + `GetRecordById` on `data.geopf.fr/csw` | `data/csw/{name}.xml` |
 | Parse | `uv run scripts/parse.py` | `data/csw/*.xml` | `data/csw/{name}.json` + `data/catalogue.json` |
 | Aggregate | `uv run scripts/stats.py` | `data/catalogue.json` | `data/stats.json` |
-| Build the site | `uv run scripts/build_site.py` | `data/catalogue.json` | `site/` |
+| Build the front end | `npm run build --prefix web` | `web/` | `web/dist` |
+| Build the site | `uv run scripts/build_site.py` | `web/dist` + `data/catalogue.json` | `site/` |
 | Export schema | `uv run scripts/export_schema.py` | the model | [`docs/pivot-schema.json`](docs/pivot-schema.json) |
 
 Each command supports `--help`, and `-v` for debug logs. The harvest is **resumable**:
@@ -138,10 +143,20 @@ Field by field, with the ISO source and the rules behind each value, see
 
 ## Overview
 
-**<https://mborne.github.io/gpf-catalogue/>** — a static page over the catalogue: what it
-holds, which resource matches a need, and what the metadata is missing. No server, no
-runtime dependency, no CDN. It says on every tab that it is unofficial, and links the
+**<https://mborne.github.io/gpf-catalogue/>** — a static site over the catalogue: what it
+holds, which resource matches a need, and what the metadata is missing. A React
+application with four routes, served as files: no API, no server-side rendering, no CDN.
+It says on every page that it is unofficial, and links the
 [mentions légales](https://mborne.github.io/mentions-legales/).
+
+Every view has a URL, which is the point of the routes:
+
+| Route | Example |
+|---|---|
+| `/overview` | <https://mborne.github.io/gpf-catalogue/overview> |
+| `/records` | <https://mborne.github.io/gpf-catalogue/records?theme=Altitude&link=wfs> |
+| `/records/{fileIdentifier}` | <https://mborne.github.io/gpf-catalogue/records/IGNF_BD-TOPO> |
+| `/quality` | <https://mborne.github.io/gpf-catalogue/quality> |
 
 It is rebuilt weekly by [`.github/workflows/pages.yml`](.github/workflows/pages.yml),
 which harvests the live service, parses it and publishes the result. The page carries
@@ -155,14 +170,20 @@ curl -O https://mborne.github.io/gpf-catalogue/catalogue.json
 To build it yourself:
 
 ```bash
+npm ci --prefix web && npm run build --prefix web
 uv run scripts/build_site.py
-uv run python -m http.server -d site 8000
+uv run scripts/serve_site.py
 ```
 
-| Tab | Question it answers |
+`python -m http.server` also serves it, but answers 404 on `/records/{fileIdentifier}`:
+that is a route, not a file. `scripts/serve_site.py` applies the rule GitHub Pages
+applies through the `404.html` the build writes.
+
+| Page | Question it answers |
 |---|---|
 | Overview | What is in the catalogue: by type, topic category, INSPIRE theme, spatial scope, publisher, licence and publication year, and which access protocols are offered |
-| Records | Which resource matches a need: full text search combined with facets, and every link of a record |
+| Records | Which resource matches a need: full text search combined with facets, every filter carried in the query string |
+| One record | Everything the catalogue published about one resource, including every access link, raw |
 | Quality | What the source metadata is missing, field by field |
 
 Two values are derived for display and never written back into the model: the publisher
@@ -217,15 +238,21 @@ Last full run, 2026-09-20:
 
 ## Development
 
-Requires [uv](https://docs.astral.sh/uv/) and Python 3.13.
+Requires [uv](https://docs.astral.sh/uv/) and Python 3.13 for the pipeline, and Node 24
+for the overview application.
 
 ```bash
 uv sync
-uv run pytest
+uv run pytest                    # the pipeline, offline
+
+npm ci --prefix web
+npm run build --prefix web       # type check and bundle
+npm run dev --prefix web         # the application, on the data/ produced above
 ```
 
 The parser is pure (bytes in, model out) and is covered by tests running offline on the
-sample records of `tests/data/`.
+sample records of `tests/data/`. Two tests read the built bundle and **skip** when
+`web/dist` is missing, so a green `pytest` alone does not prove the site builds.
 
 ## See also
 
