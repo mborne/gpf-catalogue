@@ -146,7 +146,8 @@ main {
 
 /* Ahead of every figure on the page, because a catalogue overview published by an
    individual is easy to mistake for the catalogue's own. Marked out, not alarming:
-   it has to be read once, not shouted. */
+   it has to be read once, not shouted. One line, linking to `/about`, which is
+   where the paragraph it used to carry now lives. */
 .disclaimer {
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent-warn);
@@ -155,27 +156,27 @@ main {
   color: var(--ink-2);
   font-size: 0.85rem;
   line-height: 1.55;
-  padding: 12px 14px;
+  padding: 9px 14px;
   margin-bottom: var(--gap);
   max-width: 100ch;
 }
 
 .disclaimer strong { color: var(--ink); }
 
-/* The warning itself, always on screen, and the handle that opens the rest. The
-   marker is the browser's own triangle: here it does announce an expansion. */
-.disclaimer > summary {
-  cursor: pointer;
-  list-style-position: outside;
+/* The whole banner is the link. The second half is the reason to follow it, and
+   it wraps under the warning on a narrow screen rather than shrinking it. */
+.disclaimer-link {
+  align-items: baseline;
+  color: inherit;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  text-decoration: none;
 }
 
-.disclaimer > summary::marker { color: var(--muted); }
-.disclaimer > summary:hover strong { color: var(--accent-warn); }
-.disclaimer > p { margin: 8px 0 0; }
-
-/* On its own line: run on after the sentence about cartes.gouv.fr, it read as
-   part of it. */
-.disclaimer-legal { display: block; width: fit-content; margin-top: 8px; }
+.disclaimer-link:hover strong { color: var(--accent-warn); text-decoration: underline; }
+.disclaimer-more { color: var(--muted); }
+.disclaimer-more::after { content: " \2192"; }
 
 .tag-unofficial {
   border: 1px solid var(--accent-warn);
@@ -571,6 +572,12 @@ figcaption { margin-bottom: 12px; }
 
 .prose { color: var(--ink-2); max-width: 78ch; padding-left: 18px; margin: 0; }
 .prose li { margin-bottom: 8px; }
+
+/* A paragraph of text inside a card — the about page is prose where the rest of
+   the site is figures. `.caption` is the muted aside under a chart; this is the
+   body. */
+.prose-p { color: var(--ink-2); max-width: 78ch; margin: 0 0 10px; }
+.prose-p:last-child { margin-bottom: 0; }
 
 .footer {
   border-top: 1px solid var(--border);

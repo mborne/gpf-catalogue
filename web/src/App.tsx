@@ -5,6 +5,7 @@ import { Navigate, Route, Routes } from "react-router";
 
 import { CatalogueProvider, useCatalogueState } from "./catalogue";
 import { Layout } from "./components/Layout";
+import { AboutPage } from "./pages/AboutPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { QualityPage } from "./pages/QualityPage";
 import { RecordPage } from "./pages/RecordPage";
@@ -67,6 +68,9 @@ export function App(): JSX.Element {
               </Loaded>
             }
           />
+          {/* Outside `Loaded`: it is the page that says what the site is, which is
+              exactly what is worth reaching when the two documents fail to load. */}
+          <Route path="about" element={<AboutPage />} />
           {/* A static host answers an unknown path with the entry page, so an
               unknown route reaches the application rather than the host's 404.
               It lands on the overview instead of a dead end. */}

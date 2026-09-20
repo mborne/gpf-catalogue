@@ -163,9 +163,9 @@ Field by field, with the ISO source and the rules behind each value, see
 
 **<https://mborne.github.io/gpf-catalogue/>** — a static site over the catalogue: what it
 holds, which resource matches a need, and what the metadata is missing. A React
-application with four routes, served as files: no API, no server-side rendering, no CDN.
-It says on every page that it is unofficial, and links the
-[mentions légales](https://mborne.github.io/mentions-legales/).
+application with five routes, served as files: no API, no server-side rendering, no CDN.
+It says on every page that it is unofficial, in a banner linking to `/about`, which
+carries the detail and the [mentions légales](https://mborne.github.io/mentions-legales/).
 
 Every view has a URL, which is the point of the routes:
 
@@ -175,6 +175,7 @@ Every view has a URL, which is the point of the routes:
 | `/records` | <https://mborne.github.io/gpf-catalogue/records?theme=Altitude&link=wfs> |
 | `/records/{fileIdentifier}` | <https://mborne.github.io/gpf-catalogue/records/IGNF_BD-TOPO> |
 | `/quality` | <https://mborne.github.io/gpf-catalogue/quality> |
+| `/about` | <https://mborne.github.io/gpf-catalogue/about> |
 
 It is rebuilt weekly by [`.github/workflows/pages.yml`](.github/workflows/pages.yml),
 which harvests the live service, parses it and publishes the result. The page carries

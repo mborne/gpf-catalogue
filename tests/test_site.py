@@ -198,12 +198,12 @@ def test_the_page_loads_its_assets_from_the_site(catalogue, built, tmp_path):
 
 
 def test_the_built_application_declares_every_route(built):
-    """The four routes of the issue are in the bundle, not only in the source."""
+    """Every route of the application is in the bundle, not only in the source."""
     bundle = "".join(
         path.read_text(encoding="utf-8")
         for path in sorted((built / "assets").glob("*.js"))
     )
-    for route in ("overview", "records", "records/:fileIdentifier", "quality"):
+    for route in ("overview", "records", "records/:fileIdentifier", "quality", "about"):
         assert route in bundle, route
 
 

@@ -83,7 +83,7 @@ CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/c
 | `gpf_catalogue/stats.py` | `compute_stats(list[CatalogueRecord]) -> CatalogueStats`, **pure** like `parse_record`. Aggregates, field coverage, and the derived publisher / licence family / year. |
 | `gpf_catalogue/site.py` | Assembly of the static overview site: copy `web/dist` + the two JSON documents into `site/`, and write `404.html`. |
 | `gpf_catalogue/serve.py` | A local static server that answers the application's routes with the entry document, which `python -m http.server` cannot. |
-| `web/` | The front end: React, react-router and Vite, in TypeScript. Four routes — `/overview`, `/records`, `/records/{fileIdentifier}`, `/quality`. No CDN: React is bundled into the assets the site carries. See [docs/overview.md](docs/overview.md). |
+| `web/` | The front end: React, react-router and Vite, in TypeScript. Five routes — `/overview`, `/records`, `/records/{fileIdentifier}`, `/quality`, `/about`. No CDN: React is bundled into the assets the site carries. See [docs/overview.md](docs/overview.md). |
 | `gpf_catalogue/harvest.py`, `cli.py` | Orchestration and shared argparse/logging helpers. |
 | `scripts/*.py` | Thin CLI wrappers: argparse + call the library + print a summary + exit code. |
 | `.github/workflows/pages.yml` | Builds the front end, harvests, parses and publishes the site on GitHub Pages, weekly and on push. It caches `data/csw` and tolerates the expected non-zero exits, but refuses to publish fewer than 300 records. `configure-pages` runs **before** the front end build, because the bundle needs the deployment prefix. |
