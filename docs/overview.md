@@ -92,11 +92,12 @@ and it is still the record's address.
 | **Records** | Which resource matches a need: full text filtering on title, abstract, identifier, keywords **and layer names**, combined with facets. |
 | **One record** | Everything the catalogue published about one resource, including every access link, raw. |
 | **Quality** | What the source metadata is missing: coverage of every field of the pivot model, and the anomaly counts below. |
+| **Coverage** | What the catalogue is missing about the *services*: of the feature types, layers and download resources the Géoplateforme actually serves, how many a record describes — and which ones none does. |
 | **About** | What the site is and is not, how the mirror is built and how far behind it can be, and where to read the repository that produced it. |
 
 Filtering happens in the browser, over `catalogue.json` as a whole — 1.2 MB for 326
 records, which is small enough that paging, a server and an index are all unnecessary at
-this size. Both documents are loaded once, at the root, so moving from the search to a
+this size. The documents are loaded once, at the root, so moving from the search to a
 record refetches nothing. When the catalogue grows past a few thousand records, that
 trade changes, and that is what phase 4 is for.
 
@@ -300,10 +301,86 @@ names them as such:
   nor abstract and are counted as parse failures.
 - The full funnel is therefore **336 published → 333 harvested → 326 in the catalogue**.
 
+## Service coverage
+
+Every other page of this site reads the catalogue alone. The coverage page is the one
+that reads it against something else: three Géoplateforme services publish their own
+inventory, and putting the two lists side by side answers the question the catalogue
+cannot answer about itself — *how much of what is served is described?*
+
+| Service | Inventory | Shape |
+|---|---|---|
+| WFS | `https://data.geopf.fr/wfs?SERVICE=WFS&REQUEST=GetCapabilities` | One response, 5.2 MB |
+| WMTS | `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetCapabilities` | One response, 2.9 MB |
+| Download | `https://data.geopf.fr/telechargement/capabilities` | An INSPIRE Atom feed, 10 entries a page, 12 pages ([documentation](https://cartes.gouv.fr/aide/fr/guides-utilisateur/utiliser-les-services-de-la-geoplateforme/telechargement/)) |
+
+`uv run scripts/harvest_services.py` mirrors them into `data/services/`, byte identical
+to what the services sent, on the same rules as the record harvest: an inventory already
+on disk is skipped unless `--force`, and one unreachable service does not cost the other
+two. `gpf_catalogue/coverage.py` then compares them to the pivot catalogue, purely, and
+writes `coverage.json`.
+
+### How a layer is matched to a record
+
+**On the key, never on a title.** `srv:operatesOn` and `mdb:parentMetadata` appear
+**zero** times in the catalogue, so nothing states which record describes which layer.
+What does tie them is that a link already carries the identifier the service publishes:
+
+| Service | Read from | Example |
+|---|---|---|
+| WFS | `links[].name`, which is the `typeName` — `wfs:FeatureType/wfs:Name` on the other side | `BDTOPO_V3:batiment` |
+| WMTS | `links[].name`, which is the layer identifier — `ows:Identifier` of a `wmts:Layer` | `ORTHOIMAGERY.ORTHOPHOTOS` |
+| Download | the resource segment of `links[].url` — the `atom:id` of an entry on the other side | `/telechargement/resource/ADMIN-EXPRESS` |
+
+Those are the same strings on both sides, so comparing them compares two statements
+about one thing. Pairing a layer with a record by title similarity would invent the
+relation the catalogue declined to publish, which is what [why.md](why.md) refuses to
+do. A record and a layer sharing a theme but no key are therefore reported as two
+separate gaps, and that is the honest reading.
+
+Two link shapes carry no key and are counted as such rather than as anomalies: a WFS or
+WMTS link published with no `cit:name` (1 and 2 of them respectively), and a download
+link pointing straight at a `.7z` inside a delivery rather than at a resource — 127 of
+the 232 download links, which say which archive to fetch and not which of the 116
+resources the record covers.
+
+Reading the WMTS needs one precaution: `ows:Identifier` appears **2 292 times** in its
+capabilities for **712 layers**, because every style and every tile matrix set is
+identified the same way. Only the identifier that is a direct child of a
+`wmts:Contents/wmts:Layer` names a layer, which is why the paths in
+`gpf_catalogue/inventory.py` are anchored and never `.//`.
+
+### What it measures
+
+Three counts come out of the comparison, and all three are worth reading:
+
+- **described** — the service publishes it and a record describes it,
+- **not described** — the service publishes it and no record mentions it. This is the
+  actionable half of the page, so the resources are *listed*, not only counted, in the
+  order the service published them,
+- **cited, not served** — a record names it and the service does not publish it: a
+  withdrawn layer, a record that was not updated, or an endpoint the public capabilities
+  does not cover, such as `data.geopf.fr/private/wfs`. Each one names the records that
+  made the claim, so it can be opened.
+
+Measured on the run of 2026-09-21, and printed by
+`uv run scripts/coverage.py --format markdown`:
+
+| Service | Published | Described | Coverage | Not described | Cited, not served |
+|---|---:|---:|---:|---:|---:|
+| `wfs` (feature types) | 813 | 515 | 63.3 % | 298 | 137 |
+| `wmts` (layers) | 712 | 325 | 45.6 % | 387 | 19 |
+| `download` (resources) | 116 | 76 | 65.5 % | 40 | 0 |
+
+The word *coverage* does two jobs on this site and they are not the same measurement:
+the quality page reports **field coverage**, how often a field of the pivot model is
+filled in, and this page reports **service coverage**, how much of the Géoplateforme the
+catalogue describes at all.
+
 ## How it is built
 
 `web/` is a npm project — React, react-router and Vite, in TypeScript — and
-`scripts/build_site.py` copies its `web/dist` next to the two JSON documents. So the
+`scripts/build_site.py` copies its `web/dist` next to the JSON documents. So the
 site has a build step, which the repository did not have before, and two directories
 that are rebuildable rather than source: `web/node_modules` and `web/dist`, gitignored
 like `data/` and `site/`. `web/package-lock.json` **is** versioned: it is what makes the
@@ -312,7 +389,7 @@ published bundle reproducible.
 | Path | What lives there |
 |---|---|
 | `web/src/types.ts` | The reader's side of the pivot model contract, mirroring `model.py` and `stats.py`. A field added to the model is added here too |
-| `web/src/catalogue.tsx` | Loading `catalogue.json` and `stats.json` once, and indexing them by identifier |
+| `web/src/catalogue.tsx` | Loading `catalogue.json`, `stats.json` and `coverage.json` once, and indexing them by identifier |
 | `web/src/filters.ts` | Which facets exist, which query parameter carries each, and what each one matches |
 | `web/src/markdown.tsx` | The abstract renderer |
 | `web/src/pages/` | One file per route |
@@ -356,3 +433,25 @@ hand: a field added to the pivot model is measured without anyone remembering to
 register it. `uv run scripts/stats.py --format markdown` prints that section as the
 markdown table quoted by [model.md](model.md), so a figure in the documentation is
 measured rather than remembered.
+
+## `coverage.json`
+
+Written beside `catalogue.json` and `stats.json`, by the same rules: no timestamp,
+deterministic ordering, two runs over the same mirror producing the same bytes.
+
+| Key | Contents |
+|---|---|
+| `records` | How many pivot records the comparison covered |
+| `services[]` | One entry per service whose inventory was mirrored |
+| `services[].published`, `covered`, `claimed` | What the service serves, what a record describes, and how many distinct keys the catalogue cites |
+| `services[].uncovered[]` | The `key` and `title` of every resource no record describes, in the order the service listed them |
+| `services[].unknown[]` | Every key a record cites that the service does not publish, with up to ten of the records citing it and how many there really are |
+| `services[].links`, `linksWithoutKey` | Links of that type in the catalogue, and how many carry nothing to match on |
+| `services[].records` | Records describing at least one resource that service serves |
+
+It is **the one document the site may legitimately not carry.** Measuring it needs three
+services other than the CSW, so a build that never mirrored their inventories publishes a
+correct site without it; the page then says the coverage was not measured, rather than
+drawing zeroes. That is also why `build_site()` takes the inventory directory explicitly
+instead of reaching for `data/services` on its own — a figure that silently depends on
+what happens to be on disk is a figure nobody can check.

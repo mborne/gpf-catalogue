@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<!-- Author: Claude (Anthropic) - this fixture is AI generated, see docs/init.md. -->
+<!-- Page 1 of 2, trimmed from https://data.geopf.fr/telechargement/capabilities,
+     which publishes 116 resources over 12 pages of 10. This is an INSPIRE Atom
+     download feed and not an OGC capabilities: the resource is named by the last
+     segment of atom:id, which is the URL a metadata record publishes as its
+     download link. -->
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:georss="http://www.georss.org/georss"
+      xmlns:gpf_dl="https://data.geopf.fr/annexes/ressources/xsd/gpf_dl.xsd"
+      xml:lang="en" gpf_dl:page="1" gpf_dl:pagesize="2" gpf_dl:pagecount="2"
+      gpf_dl:totalentries="3">
+  <title>Géoplateforme - Service de téléchargement</title>
+  <entry>
+    <title>ADMIN-EXPRESS</title>
+    <link href="https://data.geopf.fr/telechargement/resource/ADMIN-EXPRESS" rel="alternate" type="application/atom+xml"/>
+    <id>https://data.geopf.fr/telechargement/resource/ADMIN-EXPRESS</id>
+    <updated>2026-02-11T14:59:00+01:00</updated>
+    <content>Découpage administratif du territoire français.</content>
+  </entry>
+  <entry>
+    <title>ACCESSIBILITE-PHYSIQUE-FORETS</title>
+    <link href="https://data.geopf.fr/telechargement/resource/ACCESSIBILITE-PHYSIQUE-FORETS" rel="alternate" type="application/atom+xml"/>
+    <id>https://data.geopf.fr/telechargement/resource/ACCESSIBILITE-PHYSIQUE-FORETS</id>
+    <updated>2026-02-11T14:59:00+01:00</updated>
+    <content>Accessibilité physique des forêts aux engins d’exploitation.</content>
+  </entry>
+</feed>

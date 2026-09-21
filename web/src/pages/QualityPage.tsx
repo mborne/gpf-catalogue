@@ -47,7 +47,7 @@ export function QualityPage(): JSX.Element {
       </p>
 
       <ChartCard
-        title="Coverage of the pivot model"
+        title="Field coverage of the pivot model"
         wide
         caption="How often each optional field is actually filled in. Read from the model itself, so a new field is measured without being registered anywhere."
       >

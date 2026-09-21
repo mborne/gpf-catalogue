@@ -2,8 +2,9 @@
 """Build the static overview site into site/, from data/catalogue.json.
 
 The front end is built separately, by Vite: run `npm ci && npm run build` in web/
-first, which writes web/dist. This script copies that output next to the two JSON
-documents it reads. No network access at runtime, and no CDN — React is bundled
+first, which writes web/dist. This script copies that output next to the JSON
+documents it reads. The service coverage is included when data/services holds the
+inventories mirrored by scripts/harvest_services.py, and left out otherwise. No network access at runtime, and no CDN — React is bundled
 into the copied assets.
 
 A file:// open will not work, because the page fetches those documents, and plain
@@ -23,6 +24,7 @@ from pathlib import Path
 
 from gpf_catalogue.cli import add_common_arguments, configure_logging
 from gpf_catalogue.site import build_site
+from gpf_catalogue.storage import DEFAULT_SERVICES_DIR
 
 
 def main() -> int:
@@ -51,6 +53,13 @@ def main() -> int:
         type=Path,
         help="built front end to copy (default: web/dist)",
     )
+    parser.add_argument(
+        "--services-dir",
+        default=DEFAULT_SERVICES_DIR,
+        type=Path,
+        help="mirrored service inventories to measure the coverage against "
+        "(default: %(default)s; holding none means no coverage.json)",
+    )
     args = parser.parse_args()
     configure_logging(args.verbose)
 
@@ -58,10 +67,16 @@ def main() -> int:
     if not catalogue.is_file():
         raise SystemExit(f"{catalogue} not found, run 'uv run scripts/parse.py' first")
 
-    report = build_site(catalogue, output_dir=args.output, assets_dir=args.assets)
+    report = build_site(
+        catalogue,
+        output_dir=args.output,
+        assets_dir=args.assets,
+        services_dir=args.services_dir,
+    )
 
     print("=== Site summary ===")
     print(f"records     : {report.records}")
+    print(f"coverage    : {', '.join(report.services) or 'not measured'}")
     print(f"files       : {len(report.files)}")
     for name in report.files:
         print(f"  - {name}")

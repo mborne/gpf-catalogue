@@ -54,11 +54,11 @@ export function AboutPage(): JSX.Element {
         <h2>How the figures are built</h2>
         <p className="prose-p">
           A pipeline mirrors the catalogue record by record, converts each ISO 19115-3
-          document into a small pivot model, and aggregates the result into two JSON
+          document into a small pivot model, and aggregates the result into the JSON
           documents that this page reads —{" "}
-          <code>catalogue.json</code> and <code>stats.json</code>, sitting next to it.
-          Filtering happens in your browser, over those documents; nothing you type is
-          sent anywhere.
+          <code>catalogue.json</code>, <code>stats.json</code> and{" "}
+          <code>coverage.json</code>, sitting next to it. Filtering happens in your
+          browser, over those documents; nothing you type is sent anywhere.
         </p>
         <p className="prose-p">
           The mirror is rebuilt <strong>once a week</strong>, so every figure on this
@@ -69,7 +69,10 @@ export function AboutPage(): JSX.Element {
         <p className="prose-p">
           The conversion is lossy by design, and a few records never make it through at
           all. What is missing, and why, is measured rather than estimated: see{" "}
-          <Link to="/quality">Quality</Link>.
+          <Link to="/quality">Quality</Link>. And what the catalogue leaves out
+          entirely — the layers the Géoplateforme serves that no record describes — is
+          measured against the services themselves: see{" "}
+          <Link to="/coverage">Coverage</Link>.
         </p>
       </section>
 
@@ -94,8 +97,8 @@ export function AboutPage(): JSX.Element {
           <a href={`${REPO}#readme`} rel="noopener noreferrer" target="_blank">
             github.com/mborne/gpf-catalogue
           </a>
-          . The two documents it publishes,{" "}
-          <code>catalogue.json</code> and <code>stats.json</code>, can be downloaded
+          . The documents it publishes — <code>catalogue.json</code>,{" "}
+          <code>stats.json</code> and <code>coverage.json</code> — can be downloaded
           without cloning anything.
         </p>
         <ul className="prose">

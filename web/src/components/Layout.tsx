@@ -13,6 +13,10 @@ const TABS = [
   { to: "/overview", label: "Overview" },
   { to: "/records", label: "Records" },
   { to: "/quality", label: "Quality" },
+  /* After Quality, because it asks the same question from the other side: that
+     page counts what the catalogue is missing about itself, this one counts what
+     it is missing about the services. */
+  { to: "/coverage", label: "Coverage" },
   { to: "/about", label: "About" },
 ];
 
@@ -97,8 +101,9 @@ export function Layout(): JSX.Element {
           >
             gpf-catalogue
           </a>
-          , an AI generated experiment. The site reads <code>catalogue.json</code> and{" "}
-          <code>stats.json</code> next to it; nothing is sent anywhere.
+          , an AI generated experiment. The site reads <code>catalogue.json</code>,{" "}
+          <code>stats.json</code> and <code>coverage.json</code> next to it; nothing
+          is sent anywhere.
         </p>
         <p>
           <Link to="/about">About this site</Link> ·{" "}

@@ -60,7 +60,7 @@ def test_an_identifier_that_looks_like_a_file_is_still_a_route(base_url):
 
 
 def test_the_other_routes_too(base_url):
-    for route in ("/overview", "/records", "/quality", "/about"):
+    for route in ("/overview", "/records", "/quality", "/coverage", "/about"):
         assert "entry" in get(f"{base_url}{route}")
 
 

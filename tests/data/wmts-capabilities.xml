@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Author: Claude (Anthropic) - this fixture is AI generated, see docs/init.md. -->
+<!-- Trimmed from https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetCapabilities,
+     which declares 712 layers in 2.9 MB. The styles and the tile matrix set are kept
+     on purpose: they carry an ows:Identifier too, and the live document holds 2 292
+     of them for 712 layers. A `.//ows:Identifier` would read `normal` and `PM` as
+     layers, which is what the anchored path exists to prevent. -->
+<Capabilities version="1.0.0"
+    xmlns="http://www.opengis.net/wmts/1.0"
+    xmlns:ows="http://www.opengis.net/ows/1.1">
+  <ows:ServiceIdentification>
+    <ows:Title>Service WMTS de la Géoplateforme</ows:Title>
+  </ows:ServiceIdentification>
+  <Contents>
+    <Layer>
+      <ows:Title>Cartographie biométhane d’accès aux réseaux</ows:Title>
+      <ows:Identifier>ACCES.BIOMETHANE</ows:Identifier>
+      <Style isDefault="true">
+        <ows:Identifier>normal</ows:Identifier>
+      </Style>
+      <TileMatrixSetLink>
+        <TileMatrixSet>PM</TileMatrixSet>
+      </TileMatrixSetLink>
+    </Layer>
+    <Layer>
+      <ows:Title>Photographies aériennes</ows:Title>
+      <ows:Identifier>ORTHOIMAGERY.ORTHOPHOTOS</ows:Identifier>
+      <Style isDefault="true">
+        <ows:Identifier>normal</ows:Identifier>
+      </Style>
+    </Layer>
+    <TileMatrixSet>
+      <ows:Identifier>PM</ows:Identifier>
+      <ows:SupportedCRS>urn:ogc:def:crs:EPSG::3857</ows:SupportedCRS>
+    </TileMatrixSet>
+  </Contents>
+</Capabilities>

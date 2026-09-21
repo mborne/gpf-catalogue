@@ -28,7 +28,10 @@ uv run scripts/harvest.py                   # mirror the whole catalogue (~10 mi
 uv run scripts/harvest.py --only IGNF_BD-TOPO --force   # refresh one record
 uv run scripts/parse.py                     # *.xml -> *.json + data/catalogue.json
 uv run scripts/stats.py                     # catalogue.json -> data/stats.json
-uv run scripts/stats.py --format markdown   # the coverage table quoted by the docs
+uv run scripts/stats.py --format markdown   # the field coverage table quoted by the docs
+uv run scripts/harvest_services.py          # WFS/WMTS/download inventories -> data/services/
+uv run scripts/coverage.py                  # + catalogue.json -> data/coverage.json
+uv run scripts/coverage.py --format markdown   # the service coverage table quoted by the docs
 uv run scripts/build_site.py                # assemble site/ (needs web/dist)
 uv run scripts/serve_site.py                # serve it; file:// does not work
 uv run scripts/export_schema.py             # regenerate docs/pivot-schema.json
@@ -47,8 +50,8 @@ machine that never ran npm is not proof the site builds.
 on `/records/{fileIdentifier}` — that is a route, not a file. `scripts/serve_site.py`
 applies the rule GitHub Pages applies through `404.html`.
 
-Every script takes `--data-dir`, `-v`/`--verbose`, and `--help`. `harvest.py` and `parse.py`
-exit 1 when any record failed — that is expected on a full run (see "Known anomalies" below),
+Every script takes `--data-dir`, `-v`/`--verbose`, and `--help`. `harvest.py`, `harvest_services.py` and `parse.py`
+exit 1 when any record or inventory failed — that is expected on a full run (see "Known anomalies" below),
 so a non-zero exit is not automatically a regression.
 
 `uvx ruff format` is **not** applied repo-wide: 4 files would be reformatted. Don't run it as
@@ -56,8 +59,9 @@ a blanket cleanup; it would produce unrelated diff noise.
 
 ## Architecture
 
-The pipeline is two stages over one directory, with the package split so the network-touching
-part and the pure part never mix:
+The pipeline is two stages over one directory, plus a side branch that mirrors what three
+services say they serve. The package is split so the network-touching part and the pure
+part never mix:
 
 ```
 CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/csw/{stem}.json
@@ -65,6 +69,11 @@ CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/c
                                                            (CatalogueRecord)
                                                                   │
                                             stats.py ─────────────┤──> data/stats.json
+                                            coverage.py ──────────┤──> data/coverage.json
+                                                ▲                 │
+WFS / WMTS / download ──services.py──> data/services/{svc}-{n}.xml │
+              harvest_services.py          └──inventory.py──┘      │
+                                                                  │
                                             site.py ──────────────┴──> site/
                                                 ▲
                             web/ ──vite──> web/dist
@@ -76,17 +85,20 @@ CSW service ──csw.py──> data/csw/{stem}.xml ──parse.py──> data/c
 | Module | Role |
 |---|---|
 | `gpf_catalogue/csw.py` | CSW 2.0.2 client. Only `list_identifiers()` (GetRecords, brief) and `get_record()` (GetRecordById, `mdb` 2.0, full). Returns **raw bytes** on purpose. |
-| `gpf_catalogue/storage.py` | Identifier → file name rules, and the `data/csw` layout. |
+| `gpf_catalogue/storage.py` | Identifier → file name rules, and the `data/csw` and `data/services` layouts. |
 | `gpf_catalogue/parse.py` | `parse_record(bytes) -> CatalogueRecord`, **pure**: no I/O, no network. This is what the tests cover. |
 | `gpf_catalogue/model.py` | The pivot model (`CatalogueRecord`, Pydantic v2) — the contract downstream consumers read. |
 | `gpf_catalogue/namespaces.py` | The ISO 19115-3 prefix map; ISO split the old single `gmd` namespace into a dozen. |
 | `gpf_catalogue/stats.py` | `compute_stats(list[CatalogueRecord]) -> CatalogueStats`, **pure** like `parse_record`. Aggregates, field coverage, and the derived publisher / licence family / year. |
-| `gpf_catalogue/site.py` | Assembly of the static overview site: copy `web/dist` + the two JSON documents into `site/`, and write `404.html`. |
+| `gpf_catalogue/services.py` | Clients for the three services publishing their own inventory (WFS and WMTS `GetCapabilities`, the paginated Atom feed of the download service). Returns **raw bytes**, like `csw.py`. |
+| `gpf_catalogue/inventory.py` | `parse_inventory(service, list[bytes]) -> ServiceInventory`, **pure**. Reduces the three documents to one shape: a `key` a record can cite, and the service's own `title`. |
+| `gpf_catalogue/coverage.py` | `compute_coverage(records, inventories) -> CatalogueCoverage`, **pure**. What is served against what is described, both ways round. |
+| `gpf_catalogue/site.py` | Assembly of the static overview site: copy `web/dist` + the JSON documents into `site/`, and write `404.html`. `coverage.json` only when an inventory directory is passed. |
 | `gpf_catalogue/serve.py` | A local static server that answers the application's routes with the entry document, which `python -m http.server` cannot. |
-| `web/` | The front end: React, react-router and Vite, in TypeScript. Five routes — `/overview`, `/records`, `/records/{fileIdentifier}`, `/quality`, `/about`. No CDN: React is bundled into the assets the site carries. See [docs/overview.md](docs/overview.md). |
+| `web/` | The front end: React, react-router and Vite, in TypeScript. Six routes — `/overview`, `/records`, `/records/{fileIdentifier}`, `/quality`, `/coverage`, `/about`. No CDN: React is bundled into the assets the site carries. See [docs/overview.md](docs/overview.md). |
 | `gpf_catalogue/harvest.py`, `cli.py` | Orchestration and shared argparse/logging helpers. |
 | `scripts/*.py` | Thin CLI wrappers: argparse + call the library + print a summary + exit code. |
-| `.github/workflows/pages.yml` | Builds the front end, harvests, parses and publishes the site on GitHub Pages, weekly and on push. It caches `data/csw` and tolerates the expected non-zero exits, but refuses to publish fewer than 300 records. `configure-pages` runs **before** the front end build, because the bundle needs the deployment prefix. |
+| `.github/workflows/pages.yml` | Builds the front end, harvests, parses and publishes the site on GitHub Pages, weekly and on push. It caches `data/csw` and tolerates the expected non-zero exits, but refuses to publish fewer than 300 records. `configure-pages` runs **before** the front end build, because the bundle needs the deployment prefix. The service inventories are re-fetched on every run and **not** cached: three requests against ten minutes for the records, and a stale inventory would report withdrawn layers as uncovered. |
 
 Logic belongs in `gpf_catalogue/`, never in `scripts/`. Front end logic belongs in
 `web/src/`, never in `gpf_catalogue/site.py`, which only copies files.
@@ -181,6 +193,29 @@ corrupts the mirror.
 - **A zero is drawn as zero.** The year histogram keeps empty years at zero so the axis
   stays time, and a zero column draws nothing — the 2 px minimum that keeps small bars
   visible would otherwise make "no record" look like "one record".
+- **Coverage is matched on the key both sides publish, never on a title.** A WFS link
+  carries the `typeName` in `cit:name` (`BDTOPO_V3:batiment`), a WMTS link the layer
+  identifier, a download link the resource in its URL path
+  (`/telechargement/resource/ADMIN-EXPRESS`) — and those are exactly the strings
+  `wfs:FeatureType/wfs:Name`, `wmts:Layer/ows:Identifier` and `atom:id` publish. Since
+  `srv:operatesOn` and `mdb:parentMetadata` appear zero times, a title similarity would
+  *invent* the relation the catalogue declined to publish. A record and a layer sharing a
+  theme but no key stay two separate gaps. A download link pointing at a `.7z` inside a
+  delivery names no resource — 127 of the 232 — and is counted as unmatchable, not as a
+  wrong claim. Reading the WMTS is anchored on `wmts:Contents/wmts:Layer`: the
+  capabilities holds 2 292 `ows:Identifier` for 712 layers, the rest being styles and
+  tile matrix sets.
+- **`coverage.json` may legitimately be absent, and the page says so.** It is measured
+  against three services other than the CSW, so `build_site()` takes the inventory
+  directory **explicitly** rather than reaching for `data/services` — a figure that
+  silently depends on what happens to be on disk is a figure nobody can check. A build
+  without it publishes a correct site that reports the coverage as not measured, never
+  zero. An inventory that was never harvested is *missing*, not empty: an empty one would
+  say the service serves nothing, and turn every record citing it into a false anomaly.
+- **The word *coverage* does two jobs.** The quality page reports **field** coverage (how
+  often a field of the pivot model is filled in, from `stats.json`); `/coverage` reports
+  **service** coverage (how much of what is served is described, from `coverage.json`).
+  They are different measurements and the headings say which.
 - **`data/` and `site/` are gitignored** — both rebuildable, not source.
 
 ### Adding a field to the pivot model
@@ -220,6 +255,13 @@ l'Hérault"). The `sample` fixture loads them.
 `test_parse.py` covers the pure parser; `test_catalogue.py` covers `parse_all` and the
 aggregate, working in `tmp_path`. `GeoPF_Altimetrie.xml` is a verbatim service response —
 do not edit it, its value is being exactly what the service sent.
+
+Four more samples carry the *service* side: `wfs-capabilities.xml`,
+`wmts-capabilities.xml` and `download-feed-{01,02}.xml`, trimmed from the live responses
+and keeping one example of each shape that matters — a padded title, an entry with no
+name, the `ows:Identifier` a WMTS gives to a style and to a tile matrix set, and a feed
+that has to be walked across its pages. `test_inventory.py` and `test_coverage.py` cover
+them, offline like the rest.
 
 ## Conventions
 
