@@ -102,6 +102,16 @@ this size. The documents are loaded once, at the root, so moving from the search
 record refetches nothing. When the catalogue grows past a few thousand records, that
 trade changes, and that is what phase 4 is for.
 
+Where a page opens is part of the route too. A browser puts a document it just loaded
+at the top, but a route change loads no document: without help, following a link from
+halfway down `/records` opens the record halfway down, which reads as a page that failed
+to render its beginning. `web/src/scroll.ts` makes the three moves different things — a
+**new** page opens at the top, a page **returned to** opens where it was left, so Back
+from a record lands on the row that was clicked and not on the filters above it, and a
+**filter change moves nothing**, since it replaces the history entry rather than pushing
+one and the page must not slide under someone typing. The browser's own restoration is
+turned off: it would restore against a document that had not rendered the route yet.
+
 A filter change **replaces** the history entry rather than pushing one. Typing eight
 characters is one search, not eight, and Back has to lead out of the page — to the chart
 the filter came from, or to the record just closed — rather than through a transcript of
@@ -403,6 +413,7 @@ published bundle reproducible.
 | `web/src/catalogue.tsx` | Loading `catalogue.json`, `stats.json` and `coverage.json` once, and indexing them by identifier |
 | `web/src/filters.ts` | Which facets exist, which query parameter carries each, and what each one matches |
 | `web/src/markdown.tsx` | The abstract renderer |
+| `web/src/scroll.ts` | Where a page opens: top on a new one, where it was left on Back, unmoved on a filter change |
 | `web/src/pages/` | One file per route |
 | `web/src/components/Coverage.tsx` | The pieces `/coverage` and `/coverage/{service}` share: one service's bar, its counts, and the two long lists |
 | `web/src/components/` | The charts, the layout, a record row and a record body |

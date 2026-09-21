@@ -5,6 +5,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router";
 
 import { useCatalogueState } from "../catalogue";
 import { fmt } from "../format";
+import { useScrollRestoration } from "../scroll";
 import { toggleTheme } from "../theme";
 
 /** The sections, in the order they answer questions about the catalogue — and
@@ -43,6 +44,9 @@ function Disclaimer(): JSX.Element {
 
 export function Layout(): JSX.Element {
   const { data } = useCatalogueState();
+  // Here rather than on each page: it is the one component every route renders
+  // inside, and a route that forgot to call it would scroll like the bug.
+  useScrollRestoration();
   const source = data?.stats.source ?? "data.geopf.fr/csw";
   /* Not on `/about`: that page opens with the same sentence, in full, and a
      banner linking to the page you are reading is noise. */
