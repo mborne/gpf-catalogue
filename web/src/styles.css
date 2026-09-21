@@ -465,6 +465,17 @@ figcaption { margin-bottom: 12px; }
 
 .badge.warn { border-color: var(--bar); color: var(--bar); }
 
+/* The protocols a record offers, on its row of the result list. They are codes,
+   not prose — `wfs`, `wmts` — so they are set in the same monospace as the other
+   machine readable values, and filled rather than outlined so a row of six reads
+   as one group next to the type and the scope. */
+.badge.protocol {
+  background: var(--bar-track);
+  border-color: transparent;
+  font-family: ui-monospace, monospace;
+  font-size: 0.7rem;
+}
+
 .record-body { padding: 14px 0 0; }
 .record-body .abstract { color: var(--ink-2); margin-bottom: 12px; max-width: 80ch; }
 .abstract > :last-child { margin-bottom: 0; }
