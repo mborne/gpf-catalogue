@@ -74,6 +74,16 @@ disclosure triangle. And on the dashboard, a bar whose value is a facet leads to
 records it counts — `/records?type=service` — so a number on a chart became a question
 the search answers rather than something to reproduce by hand in the filters.
 
+A result row carries the title, the type, the spatial scope, and one badge per
+**distinct protocol** the record offers — `wfs`, `wmts`, `download` — because "does this
+publish a WFS?" is asked while scanning the list, not after opening a record. The badges
+are deduplicated: `IGNF_ADMIN-EXPRESS` publishes 251 links and offers six protocols. The
+list is ordered **by title**, which is what the rows show; `catalogue.json` stays ordered
+by file name. The `fileIdentifier` is no longer written on the row — it repeats the title
+on most of them and it is a file name, not a name — except on the one record that
+publishes no title, where it is the only thing left to point at. It remains searchable,
+and it is still the record's address.
+
 ## What it shows
 
 | Page | Question it answers |

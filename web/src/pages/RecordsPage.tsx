@@ -6,7 +6,7 @@ import { useSearchParams } from "react-router";
 import { useCatalogue } from "../catalogue";
 import { RecordSummary } from "../components/RecordSummary";
 import { FACETS, TESTS_PARAM, TEXT_PARAM, UNSTATED, matches } from "../filters";
-import { fmt } from "../format";
+import { cmp, fmt } from "../format";
 import { usePageTitle } from "../title";
 import type { Count } from "../types";
 
@@ -27,16 +27,26 @@ export function RecordsPage(): JSX.Element {
     setParams(next, { replace: true });
   };
 
+  /* The list is ordered by title, which is what the rows show; `catalogue.json`
+     is ordered by file name, which they no longer do. `cmp` sorts the one record
+     publishing no title last rather than under a fabricated name, and the
+     identifier breaks the ties — seven records share a title with another — so
+     the order is stable whatever the filters leave. */
   const visible = useMemo(
     () =>
-      records.filter((record) =>
-        matches(
-          record,
-          params,
-          haystack.get(record.fileIdentifier) ?? "",
-          facetsById.get(record.fileIdentifier),
+      records
+        .filter((record) =>
+          matches(
+            record,
+            params,
+            haystack.get(record.fileIdentifier) ?? "",
+            facetsById.get(record.fileIdentifier),
+          ),
+        )
+        .sort(
+          (a, b) =>
+            cmp(a.title, b.title) || cmp(a.fileIdentifier, b.fileIdentifier),
         ),
-      ),
     [records, params, haystack, facetsById],
   );
 
