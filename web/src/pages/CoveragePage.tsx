@@ -4,67 +4,35 @@
    "what does the catalogue say?"; this one puts the catalogue next to what three
    services say they serve, and reports the difference in both directions.
 
-   Nothing is derived here: `gpf_catalogue/coverage.py` did the matching and
-   `coverage.json` carries the result, lists included. The page counts array
-   lengths and draws bars. */
+   It carries the *answer* and nothing else: three bars, three tables of four
+   counts, and the rule behind them. The lists — 298 feature types, 387 layers,
+   137 claims — are what the answer is made of, not what it is, and each one has
+   a route of its own at `/coverage/{service}`. Stacking all six on one page made
+   it 900 rows long, so the figure a reader came for sat above a scroll nobody
+   finished. */
 
-import { useState, type JSX } from "react";
+import type { JSX } from "react";
 import { Link } from "react-router";
 
 import { useCatalogue } from "../catalogue";
 import { BarChart, ChartCard } from "../components/Chart";
-import { fmt, recordPath, share } from "../format";
+import {
+  ServiceBar,
+  ServiceCounts,
+  percent,
+  uncoveredCount,
+} from "../components/Coverage";
+import { coveragePath, fmt, share } from "../format";
 import { usePageTitle } from "../title";
 import type { ServiceCoverage } from "../types";
 
-/** Rows of a long list shown before the "show all" button. */
-const TOP_N = 25;
-
-/** The share as a number, for a bar whose axis is a full 100 rather than a count. */
-function percent(count: number, total: number): number {
-  return total ? Math.round((1000 * count) / total) / 10 : 0;
-}
-
-/** A list that opens rather than one that scrolls: 387 rows is a page of its own. */
-function Rows({
-  children,
-  total,
-  noun,
-}: {
-  children: JSX.Element[];
-  total: number;
-  noun: string;
-}): JSX.Element {
-  const [expanded, setExpanded] = useState(false);
-  const limited = total > TOP_N;
-
-  return (
-    <>
-      <div className="table-wrap">
-        <table className="table">
-          <tbody>{limited && !expanded ? children.slice(0, TOP_N) : children}</tbody>
-        </table>
-      </div>
-      {limited ? (
-        <button
-          type="button"
-          className="ghost chart-more"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? "Show fewer" : `Show all ${fmt(total)} ${noun}`}
-        </button>
-      ) : null}
-    </>
-  );
-}
-
 function Service({ service }: { service: ServiceCoverage }): JSX.Element {
-  const uncovered = service.published - service.covered;
+  const uncovered = uncoveredCount(service);
 
   return (
     <section className="card">
       <h2>
-        {service.service.toUpperCase()}{" "}
+        <Link to={coveragePath(service.service)}>{service.service.toUpperCase()}</Link>{" "}
         <span className="coverage-endpoint">{service.endpoint}</span>
       </h2>
       <p className="caption">
@@ -74,110 +42,40 @@ function Service({ service }: { service: ServiceCoverage }): JSX.Element {
         service.
       </p>
 
-      {/* `total` is deliberately not passed: the chart would then read the share
-          as "of the catalogue", and this bar is a share of what the *service*
-          publishes. The share is on the bar end instead. */}
-      <BarChart
-        counts={[
-          {
-            value: "Described by a record",
-            count: service.covered,
-            label: `${fmt(service.covered)} — ${share(service.covered, service.published)}`,
-          },
-          {
-            value: "Described by none",
-            count: uncovered,
-            label: `${fmt(uncovered)} — ${share(uncovered, service.published)}`,
-            aside: true,
-          },
-        ]}
-        scale={service.published}
-        unit={service.label}
-      />
+      <ServiceBar service={service} />
+      <ServiceCounts service={service} />
 
-      <table className="table">
-        <tbody>
-          <tr>
-            <td>Served by the service</td>
-            <td className="num">{fmt(service.published)}</td>
-          </tr>
-          <tr>
-            <td>Cited by the catalogue</td>
-            <td className="num">{fmt(service.claimed)}</td>
-          </tr>
-          <tr>
-            <td>Links of this type, in the catalogue</td>
-            <td className="num">{fmt(service.links)}</td>
-          </tr>
-          <tr>
-            <td>…of which nothing can be matched on</td>
-            <td className="num">{fmt(service.linksWithoutKey)}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      {uncovered ? (
-        <>
-          <h3 className="section-title">
-            {fmt(uncovered)} {service.label} no record describes
-          </h3>
-          <p className="caption">
-            In the order the service lists them — a capabilities groups related
-            entries, and that grouping is a reading aid it already produced. This is
-            the actionable half of the page.
-          </p>
-          <Rows total={service.uncovered.length} noun={service.label}>
-            {service.uncovered.map((resource) => (
-              <tr key={resource.key}>
-                <td className="coverage-key">{resource.key}</td>
-                <td>{resource.title ?? ""}</td>
-              </tr>
-            ))}
-          </Rows>
-        </>
-      ) : null}
-
-      {service.unknown.length ? (
-        <>
-          <h3 className="section-title">
-            {fmt(service.unknown.length)} cited by a record, served by no one
-          </h3>
-          <p className="caption">
-            The record names it, the service does not publish it: a withdrawn layer,
-            a record that was not updated, or an endpoint the public capabilities
-            does not cover — <code>data.geopf.fr/private/wfs</code> is one. Each row
-            names the records that made the claim.
-          </p>
-          <Rows total={service.unknown.length} noun="claims">
-            {service.unknown.map((claim) => (
-              <tr key={claim.key}>
-                <td className="coverage-key">{claim.key}</td>
-                <td>
-                  <ul className="chips">
-                    {claim.records.map((identifier) => (
-                      <li key={identifier}>
-                        <Link to={recordPath(identifier)}>{identifier}</Link>
-                      </li>
-                    ))}
-                    {claim.citing > claim.records.length ? (
-                      <li className="muted">
-                        and {fmt(claim.citing - claim.records.length)} more
-                      </li>
-                    ) : null}
-                  </ul>
-                </td>
-              </tr>
-            ))}
-          </Rows>
-        </>
-      ) : null}
+      <p className="coverage-more">
+        <Link to={coveragePath(service.service)}>
+          {uncovered
+            ? `The ${fmt(uncovered)} ${service.label} no record describes`
+            : `Everything this service serves is described`}
+          {service.unknown.length
+            ? `, and the ${fmt(service.unknown.length)} cited by a record and served by no one`
+            : ""}
+        </Link>
+      </p>
     </section>
   );
+}
+
+/* The bar of a service reads as a sentence, and the same string is the key the
+   chart links on: deriving the service back out of a formatted label would break
+   the day the wording changes. */
+function barLabel(service: ServiceCoverage): string {
+  return `${service.service} — ${fmt(service.covered)} of ${fmt(service.published)} ${service.label}`;
 }
 
 export function CoveragePage(): JSX.Element {
   const { coverage } = useCatalogue();
   usePageTitle("Coverage");
+
+  const pathOf = new Map(
+    (coverage?.services ?? []).map((service) => [
+      barLabel(service),
+      coveragePath(service.service),
+    ]),
+  );
 
   return (
     <>
@@ -185,7 +83,8 @@ export function CoveragePage(): JSX.Element {
         How much of what the Géoplateforme <em>serves</em> the catalogue{" "}
         <em>describes</em>. Every other page on this site reads the catalogue alone;
         this one reads it against three services that publish their own inventory —
-        the WFS, the WMTS and the download service.
+        the WFS, the WMTS and the download service. Each one opens on a page listing
+        what it is missing.
       </p>
 
       {coverage ? (
@@ -197,7 +96,7 @@ export function CoveragePage(): JSX.Element {
           >
             <BarChart
               counts={coverage.services.map((service) => ({
-                value: `${service.service} — ${fmt(service.covered)} of ${fmt(service.published)} ${service.label}`,
+                value: barLabel(service),
                 // The bar is the percentage, pinned to a full 100, so its length
                 // and its label are the same measurement.
                 count: percent(service.covered, service.published),
@@ -205,6 +104,7 @@ export function CoveragePage(): JSX.Element {
               }))}
               scale={100}
               unit="% described"
+              linkTo={(value) => pathOf.get(value) ?? "/coverage"}
             />
           </ChartCard>
 

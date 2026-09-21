@@ -463,6 +463,10 @@ figcaption { margin-bottom: 12px; }
 
 .muted { color: var(--muted); }
 
+/* The way out of a summary card and into the list it summarises. */
+.coverage-more { font-size: 0.85rem; margin-top: 12px; }
+.coverage-more a::after { content: " \2192"; }
+
 /* --- one record ----------------------------------------------------------- */
 
 .record-page { padding: 18px 18px 6px; }

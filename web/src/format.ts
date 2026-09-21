@@ -57,6 +57,11 @@ export function cswUrl(fileIdentifier: string): string {
   );
 }
 
+/** The route of one service's coverage. Service names are `wfs`, `wmts`, `download`. */
+export function coveragePath(service: string): string {
+  return `/coverage/${encodeURIComponent(service)}`;
+}
+
 /** The route of one record. Identifiers carry spaces and accents; none carries a `/`. */
 export function recordPath(fileIdentifier: string): string {
   return `/records/${encodeURIComponent(fileIdentifier)}`;

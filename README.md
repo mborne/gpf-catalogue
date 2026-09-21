@@ -168,7 +168,7 @@ Field by field, with the ISO source and the rules behind each value, see
 
 **<https://mborne.github.io/gpf-catalogue/>** — a static site over the catalogue: what it
 holds, which resource matches a need, and what the metadata is missing. A React
-application with six routes, served as files: no API, no server-side rendering, no CDN.
+application with seven routes, served as files: no API, no server-side rendering, no CDN.
 It says on every page that it is unofficial, in a banner linking to `/about`, which
 carries the detail and the [mentions légales](https://mborne.github.io/mentions-legales/).
 
@@ -181,6 +181,7 @@ Every view has a URL, which is the point of the routes:
 | `/records/{fileIdentifier}` | <https://mborne.github.io/gpf-catalogue/records/IGNF_BD-TOPO> |
 | `/quality` | <https://mborne.github.io/gpf-catalogue/quality> |
 | `/coverage` | <https://mborne.github.io/gpf-catalogue/coverage> |
+| `/coverage/{service}` | <https://mborne.github.io/gpf-catalogue/coverage/wmts> |
 | `/about` | <https://mborne.github.io/gpf-catalogue/about> |
 
 It is rebuilt weekly by [`.github/workflows/pages.yml`](.github/workflows/pages.yml),
@@ -210,7 +211,8 @@ applies through the `404.html` the build writes.
 | Records | Which resource matches a need: full text search combined with facets, every filter carried in the query string |
 | One record | Everything the catalogue published about one resource, including every access link, raw |
 | Quality | What the source metadata is missing, field by field |
-| Coverage | What the catalogue is missing about the services: of the 813 WFS feature types, 712 WMTS layers and 116 download resources the Géoplateforme serves, how many a record describes — and which ones none does |
+| Coverage | What the catalogue is missing about the services: of the 813 WFS feature types, 712 WMTS layers and 116 download resources the Géoplateforme serves, how many a record describes |
+| One service | Which ones exactly: the list of what that service serves and no record describes, and of what a record cites and it does not serve |
 
 Two values are derived for display and never written back into the model: the publisher
 is the **contact email domain**, because `producer` carries 134 spellings for far fewer

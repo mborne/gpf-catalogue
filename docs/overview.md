@@ -92,7 +92,8 @@ and it is still the record's address.
 | **Records** | Which resource matches a need: full text filtering on title, abstract, identifier, keywords **and layer names**, combined with facets. |
 | **One record** | Everything the catalogue published about one resource, including every access link, raw. |
 | **Quality** | What the source metadata is missing: coverage of every field of the pivot model, and the anomaly counts below. |
-| **Coverage** | What the catalogue is missing about the *services*: of the feature types, layers and download resources the Géoplateforme actually serves, how many a record describes — and which ones none does. |
+| **Coverage** | What the catalogue is missing about the *services*: of the feature types, layers and download resources the Géoplateforme actually serves, how many a record describes. |
+| **One service** | Which ones exactly — the list of what that service serves and no record describes, and of what a record cites and it does not serve. |
 | **About** | What the site is and is not, how the mirror is built and how far behind it can be, and where to read the repository that produced it. |
 
 Filtering happens in the browser, over `catalogue.json` as a whole — 1.2 MB for 326
@@ -350,6 +351,16 @@ identified the same way. Only the identifier that is a direct child of a
 `wmts:Contents/wmts:Layer` names a layer, which is why the paths in
 `gpf_catalogue/inventory.py` are anchored and never `.//`.
 
+### The answer, then the lists
+
+`/coverage` carries the answer and nothing else: three bars, three tables of four
+counts, and the rule above. The lists are what the answer is *made of*, not what it is,
+and each service gets a route of its own — `/coverage/wfs`, `/coverage/wmts`,
+`/coverage/download`. Stacked on one page they came to some 900 rows, which put the
+figure a reader came for above a scroll nobody finished. They are also working lists on
+their own: a link to *the 387 WMTS layers nobody documented* is worth sending to
+someone, which a section of a longer page could not be.
+
 ### What it measures
 
 Three counts come out of the comparison, and all three are worth reading:
@@ -393,6 +404,7 @@ published bundle reproducible.
 | `web/src/filters.ts` | Which facets exist, which query parameter carries each, and what each one matches |
 | `web/src/markdown.tsx` | The abstract renderer |
 | `web/src/pages/` | One file per route |
+| `web/src/components/Coverage.tsx` | The pieces `/coverage` and `/coverage/{service}` share: one service's bar, its counts, and the two long lists |
 | `web/src/components/` | The charts, the layout, a record row and a record body |
 | `web/src/styles.css` | The stylesheet, carried over from the previous site rather than rewritten |
 

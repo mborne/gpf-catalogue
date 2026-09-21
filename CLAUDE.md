@@ -95,7 +95,7 @@ WFS / WMTS / download ──services.py──> data/services/{svc}-{n}.xml │
 | `gpf_catalogue/coverage.py` | `compute_coverage(records, inventories) -> CatalogueCoverage`, **pure**. What is served against what is described, both ways round. |
 | `gpf_catalogue/site.py` | Assembly of the static overview site: copy `web/dist` + the JSON documents into `site/`, and write `404.html`. `coverage.json` only when an inventory directory is passed. |
 | `gpf_catalogue/serve.py` | A local static server that answers the application's routes with the entry document, which `python -m http.server` cannot. |
-| `web/` | The front end: React, react-router and Vite, in TypeScript. Six routes — `/overview`, `/records`, `/records/{fileIdentifier}`, `/quality`, `/coverage`, `/about`. No CDN: React is bundled into the assets the site carries. See [docs/overview.md](docs/overview.md). |
+| `web/` | The front end: React, react-router and Vite, in TypeScript. Seven routes — `/overview`, `/records`, `/records/{fileIdentifier}`, `/quality`, `/coverage`, `/coverage/{service}`, `/about`. No CDN: React is bundled into the assets the site carries. See [docs/overview.md](docs/overview.md). |
 | `gpf_catalogue/harvest.py`, `cli.py` | Orchestration and shared argparse/logging helpers. |
 | `scripts/*.py` | Thin CLI wrappers: argparse + call the library + print a summary + exit code. |
 | `.github/workflows/pages.yml` | Builds the front end, harvests, parses and publishes the site on GitHub Pages, weekly and on push. It caches `data/csw` and tolerates the expected non-zero exits, but refuses to publish fewer than 300 records. `configure-pages` runs **before** the front end build, because the bundle needs the deployment prefix. The service inventories are re-fetched on every run and **not** cached: three requests against ten minutes for the records, and a stale inventory would report withdrawn layers as uncovered. |
@@ -212,6 +212,14 @@ corrupts the mirror.
   without it publishes a correct site that reports the coverage as not measured, never
   zero. An inventory that was never harvested is *missing*, not empty: an empty one would
   say the service serves nothing, and turn every record citing it into a false anomaly.
+- **`/coverage` carries the answer, `/coverage/{service}` carries the lists.** The
+  three services publish 298, 387 and 40 resources no record describes, plus 137 and
+  19 keys a record cites and they do not serve: stacked on one page that is 900 rows,
+  and the figure a reader came for sits above a scroll nobody finishes. Each list is
+  also a working list — *the WMTS layers nobody documented* is worth sending to
+  someone, which a section of a longer page could not be. The shared pieces live in
+  `web/src/components/Coverage.tsx`; neither page derives anything, both read
+  `coverage.json`.
 - **The word *coverage* does two jobs.** The quality page reports **field** coverage (how
   often a field of the pivot model is filled in, from `stats.json`); `/coverage` reports
   **service** coverage (how much of what is served is described, from `coverage.json`).

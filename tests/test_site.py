@@ -219,6 +219,7 @@ def test_the_built_application_declares_every_route(built):
         "records/:fileIdentifier",
         "quality",
         "coverage",
+        "coverage/:service",
         "about",
     )
     for route in routes:

@@ -7,6 +7,7 @@ import { CatalogueProvider, useCatalogueState } from "./catalogue";
 import { Layout } from "./components/Layout";
 import { AboutPage } from "./pages/AboutPage";
 import { CoveragePage } from "./pages/CoveragePage";
+import { CoverageServicePage } from "./pages/CoverageServicePage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { QualityPage } from "./pages/QualityPage";
 import { RecordPage } from "./pages/RecordPage";
@@ -74,6 +75,17 @@ export function App(): JSX.Element {
             element={
               <Loaded>
                 <CoveragePage />
+              </Loaded>
+            }
+          />
+          {/* The lists of what is not described are long enough to be a page, and
+              a link to "the WMTS layers nobody documented" is worth sending to
+              someone — which a section of a longer page could not be. */}
+          <Route
+            path="coverage/:service"
+            element={
+              <Loaded>
+                <CoverageServicePage />
               </Loaded>
             }
           />
