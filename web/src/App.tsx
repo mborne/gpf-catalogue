@@ -6,6 +6,8 @@ import { Navigate, Route, Routes } from "react-router";
 import { CatalogueProvider, useCatalogueState } from "./catalogue";
 import { Layout } from "./components/Layout";
 import { AboutPage } from "./pages/AboutPage";
+import { CoveragePage } from "./pages/CoveragePage";
+import { CoverageServicePage } from "./pages/CoverageServicePage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { QualityPage } from "./pages/QualityPage";
 import { RecordPage } from "./pages/RecordPage";
@@ -16,7 +18,7 @@ import { RecordsPage } from "./pages/RecordsPage";
    rendering it, so that the section a visitor is looking at is always written in
    the URL — including the first one. */
 
-/** Pages render only once both documents are in: every one of them reads both. */
+/** Pages render only once the catalogue is in: every one of them reads it. */
 function Loaded({ children }: { children: JSX.Element }): JSX.Element {
   const { data, error } = useCatalogueState();
   if (error) {
@@ -65,6 +67,25 @@ export function App(): JSX.Element {
             element={
               <Loaded>
                 <QualityPage />
+              </Loaded>
+            }
+          />
+          <Route
+            path="coverage"
+            element={
+              <Loaded>
+                <CoveragePage />
+              </Loaded>
+            }
+          />
+          {/* The lists of what is not described are long enough to be a page, and
+              a link to "the WMTS layers nobody documented" is worth sending to
+              someone — which a section of a longer page could not be. */}
+          <Route
+            path="coverage/:service"
+            element={
+              <Loaded>
+                <CoverageServicePage />
               </Loaded>
             }
           />

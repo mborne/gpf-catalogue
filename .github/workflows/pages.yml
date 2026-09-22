@@ -138,11 +138,22 @@ jobs:
               sys.exit(f"only {count} records, refusing to publish")
           PY
 
+      # The coverage compares the catalogue to what three services other than the
+      # CSW say they serve. Not cached: it is three requests and a twelve page
+      # feed, against ten minutes for the records, and a stale inventory would
+      # report layers that no longer exist as uncovered.
+      - name: Harvest the service inventories
+        # Exit 1 means one service was unreachable. The coverage is reported per
+        # service, so two thirds of it is still worth publishing, and a run with
+        # none simply publishes a site that says the coverage was not measured.
+        run: uv run scripts/harvest_services.py --force || true
+
       - name: Build the site
         run: uv run scripts/build_site.py
 
-      # The site carries catalogue.json and stats.json, so publishing it also
-      # publishes the data: https://<owner>.github.io/<repo>/catalogue.json
+      # The site carries catalogue.json, stats.json and coverage.json, so
+      # publishing it also publishes the data:
+      # https://<owner>.github.io/<repo>/catalogue.json
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site

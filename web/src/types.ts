@@ -1,6 +1,6 @@
 // Author: Claude (Anthropic) — this file is AI generated, see ../../docs/init.md.
 
-/* The shapes of the two documents the site reads. They mirror
+/* The shapes of the documents the site reads. They mirror
    `gpf_catalogue/model.py` and `gpf_catalogue/stats.py`, whose exported schema —
    `docs/pivot-schema.json` — is the contract; these declarations are the reader's
    side of it, and adding a field to the model means adding it here too.
@@ -138,4 +138,45 @@ export interface CatalogueStats {
   recordFacets: RecordFacets[];
   coverage: FieldCoverage[];
   quality: QualityStats;
+}
+
+/* The coverage document, written by `gpf_catalogue/coverage.py`. It is the one the
+   site may legitimately not carry: measuring it needs the inventories of three
+   services other than the CSW, so `coverage` is `null` on a build that never
+   fetched them — which the page says, rather than drawing zeroes. */
+
+/** One resource a service says it serves, as `gpf_catalogue/inventory.py` read it. */
+export interface PublishedResource {
+  /** What a record has to cite: a `typeName`, a layer identifier, a resource name. */
+  key: string;
+  /** The label the service gives it, null when it publishes none. */
+  title: string | null;
+}
+
+/** A key the catalogue cites and the service does not publish. */
+export interface UnknownClaim {
+  key: string;
+  /** The records citing it, truncated; `citing` is how many there really are. */
+  records: string[];
+  citing: number;
+}
+
+export interface ServiceCoverage {
+  service: string;
+  /** What this service calls its resources: "feature types", "layers". */
+  label: string;
+  endpoint: string;
+  published: number;
+  covered: number;
+  uncovered: PublishedResource[];
+  claimed: number;
+  unknown: UnknownClaim[];
+  links: number;
+  linksWithoutKey: number;
+  records: number;
+}
+
+export interface CatalogueCoverage {
+  records: number;
+  services: ServiceCoverage[];
 }

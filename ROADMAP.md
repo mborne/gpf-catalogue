@@ -149,6 +149,19 @@ answers, and it publishes what the source metadata is worth, field by field.
       names and left a whole WFS service named `BDTOPO_V3:aerodrome`. Entries are now one
       per published resource, carrying `cit:name` *and* `cit:description`, and the page
       lists them raw — protocol, URL, name, description — so the repetition stays visible
+- [x] **How much of the Géoplateforme the catalogue actually describes** — three services
+      publish their own inventory, so the question can be answered instead of guessed:
+      `scripts/harvest_services.py` mirrors the WFS and WMTS capabilities and the paginated
+      Atom feed of the download service into `data/services/`, `gpf_catalogue/coverage.py`
+      compares them to the pivot catalogue, purely, and `/coverage` shows the result
+      ([#9](https://github.com/mborne/gpf-catalogue/issues/9),
+      [#13](https://github.com/mborne/gpf-catalogue/issues/13),
+      [#14](https://github.com/mborne/gpf-catalogue/issues/14),
+      [#15](https://github.com/mborne/gpf-catalogue/issues/15)). Measured on 2026-09-21:
+      **515 of 813** WFS feature types, **325 of 712** WMTS layers and **76 of 116**
+      download resources are described by a record. The uncovered ones are *listed*, not
+      only counted, and so are the 137 WFS and 19 WMTS keys a record cites that the
+      service does not serve
 
 Answered along the way: whether an overview needs a server. It does not, at this size —
 1.2 MB of `catalogue.json` filters in the browser faster than a round trip, and the whole
@@ -198,6 +211,13 @@ each rule is written down in [docs/overview.md](docs/overview.md).
   publish a classification the producers never made. A spatial filter waits for phase 4.
 - **No dataset to service relation**, for the reason phase 2 established: `srv:operatesOn`
   and `mdb:parentMetadata` appear zero times.
+- **Coverage is matched on the key both sides publish, never on a similar title.** A WFS
+  link already carries the `typeName`, a WMTS link the layer identifier, a download link
+  the resource in its URL path, and those are the same strings the services publish. That
+  is a comparison; pairing a layer with a record because their titles look alike would be
+  the dataset to service relation invented rather than read, which the point above
+  refuses. A record and a layer sharing a theme but no key are reported as two separate
+  gaps, which is the honest answer.
 
 ## Phase 4 — Search and MCP
 

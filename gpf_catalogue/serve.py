@@ -29,7 +29,7 @@ INDEX_NAME = "index.html"
 #: than answering anything missing with the entry document, keeps a stale asset a
 #: 404: `/assets/index-gone.js` is a broken build, and saying so beats quietly
 #: serving it a HTML document the browser cannot execute.
-ROUTES = frozenset({"about", "overview", "records", "quality"})
+ROUTES = frozenset({"about", "coverage", "overview", "quality", "records"})
 
 
 class SinglePageHandler(SimpleHTTPRequestHandler):

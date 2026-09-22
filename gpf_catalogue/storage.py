@@ -3,7 +3,10 @@
 Layout, relative to the repository root:
 
 - `data/csw/{name}.xml`: the raw ISO 19115-3 record, as sent by the service,
-- `data/csw/{name}.json`: the same record in the pivot model.
+- `data/csw/{name}.json`: the same record in the pivot model,
+- `data/services/{service}-{page}.xml`: the inventory of a service that publishes
+  one — what the WFS, the WMTS and the download service say they serve, used by
+  `gpf_catalogue.coverage`.
 
 `data/` is a rebuildable mirror of the Géoplateforme catalogue and is not versioned.
 
@@ -29,6 +32,10 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 
 #: Default destination of harvested and converted records.
 DEFAULT_DATA_DIR = ROOT_DIR / "data" / "csw"
+
+#: Default destination of the mirrored service inventories. Beside `data/csw`
+#: rather than inside it: a record named `wfs-01` would land on the same path.
+DEFAULT_SERVICES_DIR = ROOT_DIR / "data" / "services"
 
 #: Longest file name stem kept as is, before it is truncated and hashed.
 MAX_STEM_LENGTH = 120
@@ -109,6 +116,54 @@ def xml_path(data_dir: Path, stem: str) -> Path:
 def json_path(data_dir: Path, stem: str) -> Path:
     """Return the path of the pivot record for a given file name stem."""
     return _child(data_dir, f"{stem}.json")
+
+
+def service_page_path(services_dir: Path, service: str, page: int) -> Path:
+    """Return the path of one page of a service inventory.
+
+    The page number is part of the name even for the two services answering in a
+    single response, so the three inventories are laid out the same way and a
+    listing never needs to know which is paginated.
+
+    Args:
+        services_dir: Directory holding the mirrored inventories.
+        service: Short service name, `wfs`, `wmts` or `download`.
+        page: 1-based page number.
+
+    Returns:
+        `{services_dir}/{service}-{page:02d}.xml`.
+
+    Raises:
+        ValueError: If the service name would escape `services_dir`.
+    """
+    return _child(services_dir, f"{_safe_service(service)}-{page:02d}.xml")
+
+
+def service_pages(services_dir: Path, service: str) -> list[Path]:
+    """Return the mirrored pages of one service inventory, in page order.
+
+    Args:
+        services_dir: Directory holding the mirrored inventories.
+        service: Short service name.
+
+    Returns:
+        The existing page files, sorted by name — which is page order, because the
+        number is zero padded. Empty when the service was never harvested.
+    """
+    if not services_dir.is_dir():
+        return []
+    return sorted(services_dir.glob(f"{_safe_service(service)}-*.xml"))
+
+
+def _safe_service(service: str) -> str:
+    """Return a service name usable as a file name, refusing anything else.
+
+    Service names are ours, not the network's, so this is an assertion rather than
+    an escaping rule: a name that is not a plain word is a programming error.
+    """
+    if not service.replace("-", "").replace("_", "").isalnum():
+        raise ValueError(f"unsafe service name: {service!r}")
+    return service
 
 
 def stem_of(path: Path) -> str:

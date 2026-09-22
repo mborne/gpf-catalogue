@@ -5,6 +5,7 @@ import { Link, NavLink, Outlet, useLocation } from "react-router";
 
 import { useCatalogueState } from "../catalogue";
 import { fmt } from "../format";
+import { useScrollRestoration } from "../scroll";
 import { toggleTheme } from "../theme";
 
 /** The sections, in the order they answer questions about the catalogue — and
@@ -13,6 +14,10 @@ const TABS = [
   { to: "/overview", label: "Overview" },
   { to: "/records", label: "Records" },
   { to: "/quality", label: "Quality" },
+  /* After Quality, because it asks the same question from the other side: that
+     page counts what the catalogue is missing about itself, this one counts what
+     it is missing about the services. */
+  { to: "/coverage", label: "Coverage" },
   { to: "/about", label: "About" },
 ];
 
@@ -39,6 +44,9 @@ function Disclaimer(): JSX.Element {
 
 export function Layout(): JSX.Element {
   const { data } = useCatalogueState();
+  // Here rather than on each page: it is the one component every route renders
+  // inside, and a route that forgot to call it would scroll like the bug.
+  useScrollRestoration();
   const source = data?.stats.source ?? "data.geopf.fr/csw";
   /* Not on `/about`: that page opens with the same sentence, in full, and a
      banner linking to the page you are reading is noise. */
@@ -97,8 +105,9 @@ export function Layout(): JSX.Element {
           >
             gpf-catalogue
           </a>
-          , an AI generated experiment. The site reads <code>catalogue.json</code> and{" "}
-          <code>stats.json</code> next to it; nothing is sent anywhere.
+          , an AI generated experiment. The site reads <code>catalogue.json</code>,{" "}
+          <code>stats.json</code> and <code>coverage.json</code> next to it; nothing
+          is sent anywhere.
         </p>
         <p>
           <Link to="/about">About this site</Link> ·{" "}

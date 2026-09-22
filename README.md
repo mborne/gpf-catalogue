@@ -45,6 +45,7 @@ uv sync                                 # install the dependencies
 uv run scripts/harvest.py --limit 5     # try on 5 records
 uv run scripts/harvest.py               # mirror the whole catalogue (~10 min)
 uv run scripts/parse.py                 # convert it to the pivot model
+uv run scripts/harvest_services.py      # what the WFS, WMTS and download service serve
 npm ci --prefix web                     # the front end dependencies, once
 npm run build --prefix web              # build the overview application
 uv run scripts/build_site.py            # assemble the site into site/
@@ -101,13 +102,17 @@ catalogue is also written as a single `data/catalogue.json`, 1.5 MB for 326 reco
 | Harvest | `uv run scripts/harvest.py` | `GetRecords` + `GetRecordById` on `data.geopf.fr/csw` | `data/csw/{name}.xml` |
 | Parse | `uv run scripts/parse.py` | `data/csw/*.xml` | `data/csw/{name}.json` + `data/catalogue.json` |
 | Aggregate | `uv run scripts/stats.py` | `data/catalogue.json` | `data/stats.json` |
+| Harvest the services | `uv run scripts/harvest_services.py` | the WFS, WMTS and download inventories | `data/services/{service}-{page}.xml` |
+| Measure the coverage | `uv run scripts/coverage.py` | `data/catalogue.json` + `data/services/` | `data/coverage.json` |
 | Build the front end | `npm run build --prefix web` | `web/` | `web/dist` |
-| Build the site | `uv run scripts/build_site.py` | `web/dist` + `data/catalogue.json` | `site/` |
+| Build the site | `uv run scripts/build_site.py` | `web/dist` + `data/catalogue.json` + `data/services/` | `site/` |
 | Export schema | `uv run scripts/export_schema.py` | the model | [`docs/pivot-schema.json`](docs/pivot-schema.json) |
 
-Each command supports `--help`, and `-v` for debug logs. The harvest is **resumable**:
-records already on disk are skipped, so an interrupted run is restarted by running it
-again. Use `--force` to refresh them.
+Each command supports `--help`, and `-v` for debug logs. Both harvests are
+**resumable**: what is already on disk is skipped, so an interrupted run is restarted by
+running it again. Use `--force` to refresh. The service inventories are optional — a
+build without them publishes a site that says the coverage was not measured, rather than
+one reporting zero.
 
 ## Pivot model
 
@@ -163,7 +168,7 @@ Field by field, with the ISO source and the rules behind each value, see
 
 **<https://mborne.github.io/gpf-catalogue/>** — a static site over the catalogue: what it
 holds, which resource matches a need, and what the metadata is missing. A React
-application with five routes, served as files: no API, no server-side rendering, no CDN.
+application with seven routes, served as files: no API, no server-side rendering, no CDN.
 It says on every page that it is unofficial, in a banner linking to `/about`, which
 carries the detail and the [mentions légales](https://mborne.github.io/mentions-legales/).
 
@@ -175,12 +180,14 @@ Every view has a URL, which is the point of the routes:
 | `/records` | <https://mborne.github.io/gpf-catalogue/records?theme=Altitude&link=wfs> |
 | `/records/{fileIdentifier}` | <https://mborne.github.io/gpf-catalogue/records/IGNF_BD-TOPO> |
 | `/quality` | <https://mborne.github.io/gpf-catalogue/quality> |
+| `/coverage` | <https://mborne.github.io/gpf-catalogue/coverage> |
+| `/coverage/{service}` | <https://mborne.github.io/gpf-catalogue/coverage/wmts> |
 | `/about` | <https://mborne.github.io/gpf-catalogue/about> |
 
 It is rebuilt weekly by [`.github/workflows/pages.yml`](.github/workflows/pages.yml),
 which harvests the live service, parses it and publishes the result. The page carries
-`catalogue.json` and `stats.json` beside it, so the data is downloadable without cloning
-or re-harvesting:
+`catalogue.json`, `stats.json` and `coverage.json` beside it, so the data is
+downloadable without cloning or re-harvesting:
 
 ```bash
 curl -O https://mborne.github.io/gpf-catalogue/catalogue.json
@@ -204,6 +211,8 @@ applies through the `404.html` the build writes.
 | Records | Which resource matches a need: full text search combined with facets, every filter carried in the query string |
 | One record | Everything the catalogue published about one resource, including every access link, raw |
 | Quality | What the source metadata is missing, field by field |
+| Coverage | What the catalogue is missing about the services: of the 813 WFS feature types, 712 WMTS layers and 116 download resources the Géoplateforme serves, how many a record describes |
+| One service | Which ones exactly: the list of what that service serves and no record describes, and of what a record cites and it does not serve |
 
 Two values are derived for display and never written back into the model: the publisher
 is the **contact email domain**, because `producer` carries 134 spellings for far fewer
@@ -212,8 +221,15 @@ records declaring nothing read *Undeclared* rather than *open*. The rules, and w
 overview deliberately refuses to derive, are in [docs/overview.md](docs/overview.md).
 
 `uv run scripts/stats.py` writes the same aggregates to `data/stats.json` without
-building the page, and `--format markdown` regenerates the coverage figures quoted
-above.
+building the page, and `--format markdown` regenerates the field coverage figures quoted
+above. `uv run scripts/coverage.py` does the same for the service coverage.
+
+The coverage page is the only one that reads something other than the catalogue. The
+match between a record and a layer is on the **key both sides publish** — the WFS
+`typeName` in `links[].name`, the WMTS layer identifier, the resource segment of a
+download URL — and never on a similar title: nothing in the catalogue states which record
+describes which layer, and guessing it would invent the relation the source declined to
+publish.
 
 ## Status and limits
 
@@ -226,6 +242,14 @@ Last full run, 2026-09-20:
 | Converted to the pivot model | 326 |
 | Typed access links kept | 2 575, over 828 distinct endpoints |
 | Records flagged as test publications | 14 |
+
+Against what the services actually serve, on 2026-09-21:
+
+| Service | Published | Described by a record | Coverage |
+|---|---:|---:|---:|
+| WFS feature types | 813 | 515 | 63.3 % |
+| WMTS layers | 712 | 325 | 45.6 % |
+| Download resources | 116 | 76 | 65.5 % |
 
 - **No index, no MCP server yet** — this repository produces data and a page to browse
   it, not a search API. Filtering happens in the browser over the whole catalogue, which

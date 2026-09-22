@@ -440,6 +440,33 @@ figcaption { margin-bottom: 12px; }
 .record-title.untitled { color: var(--muted); font-weight: 400; font-style: italic; }
 .record-id { color: var(--muted); font-size: 0.78rem; font-family: ui-monospace, monospace; }
 
+/* --- coverage ------------------------------------------------------------- */
+
+/* The endpoint beside a service heading: it says which service the figures below
+   were read from, which is the whole point of the page, but it is not the title. */
+.coverage-endpoint {
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+/* A `typeName` or a layer identifier, machine readable like every other key on
+   this site, and long enough to need to break inside a table cell. */
+.coverage-key {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  width: 45%;
+}
+
+.muted { color: var(--muted); }
+
+/* The way out of a summary card and into the list it summarises. */
+.coverage-more { font-size: 0.85rem; margin-top: 12px; }
+.coverage-more a::after { content: " \2192"; }
+
 /* --- one record ----------------------------------------------------------- */
 
 .record-page { padding: 18px 18px 6px; }

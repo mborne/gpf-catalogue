@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<!-- Author: Claude (Anthropic) - this fixture is AI generated, see docs/init.md. -->
+<!-- Page 2 of 2: the last page, which is how the walk knows it is over. -->
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:gpf_dl="https://data.geopf.fr/annexes/ressources/xsd/gpf_dl.xsd"
+      xml:lang="en" gpf_dl:page="2" gpf_dl:pagesize="2" gpf_dl:pagecount="2"
+      gpf_dl:totalentries="3">
+  <title>Géoplateforme - Service de téléchargement</title>
+  <entry>
+    <title>BDTOPO</title>
+    <link href="https://data.geopf.fr/telechargement/resource/BDTOPO" rel="alternate" type="application/atom+xml"/>
+    <id>https://data.geopf.fr/telechargement/resource/BDTOPO</id>
+    <updated>2026-02-11T14:59:00+01:00</updated>
+    <content>Description vectorielle du territoire.</content>
+  </entry>
+</feed>

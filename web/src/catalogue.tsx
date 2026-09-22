@@ -1,6 +1,6 @@
 // Author: Claude (Anthropic) — this file is AI generated, see ../../docs/init.md.
 
-/* The site reads two documents published beside it and does everything else in
+/* The site reads the documents published beside it and does everything else in
    the browser. At 326 records and 1.2 MB there is nothing to page, index or
    serve; when the catalogue outgrows that, it is a search index that is needed,
    not a bigger page (ROADMAP phase 4).
@@ -10,9 +10,14 @@
    `gpf_catalogue/stats.py` computed them. Two implementations of one rule would
    be two rules.
 
-   Both documents are loaded once, at the root, rather than per route: moving
-   from the search to a record must not refetch 1.2 MB, and the record page needs
-   the same catalogue the search page filtered. */
+   They are loaded once, at the root, rather than per route: moving from the
+   search to a record must not refetch 1.2 MB, and the record page needs the same
+   catalogue the search page filtered.
+
+   `coverage.json` is the one that may be absent. It is measured against three
+   services other than the CSW, so a build that never mirrored their inventories
+   publishes a correct site without it — and a 404 on it is that build, not a
+   broken one. It is the only document whose absence is not an error. */
 
 import {
   createContext,
@@ -26,6 +31,7 @@ import {
 import { haystackOf } from "./format";
 import type {
   Catalogue,
+  CatalogueCoverage,
   CatalogueRecord,
   CatalogueStats,
   RecordFacets,
@@ -33,6 +39,8 @@ import type {
 
 export interface CatalogueData {
   stats: CatalogueStats;
+  /** Null when the build measured no coverage; see the module comment. */
+  coverage: CatalogueCoverage | null;
   records: CatalogueRecord[];
   /** Records by identifier, for `/records/{fileIdentifier}`. */
   byId: Map<string, CatalogueRecord>;
@@ -49,7 +57,7 @@ export interface CatalogueState {
 
 const CatalogueContext = createContext<CatalogueState>({ data: null, error: null });
 
-/** The two documents live next to the entry page, under the deployment prefix. */
+/** The documents live next to the entry page, under the deployment prefix. */
 const base = import.meta.env.BASE_URL;
 
 async function fetchJSON<T>(name: string): Promise<T> {
@@ -58,10 +66,23 @@ async function fetchJSON<T>(name: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-function index(stats: CatalogueStats, catalogue: Catalogue): CatalogueData {
+/** Like `fetchJSON`, but a document the build may not have written is not an error. */
+async function fetchOptionalJSON<T>(name: string): Promise<T | null> {
+  const response = await fetch(`${base}${name}`);
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`${name}: HTTP ${response.status}`);
+  return (await response.json()) as T;
+}
+
+function index(
+  stats: CatalogueStats,
+  catalogue: Catalogue,
+  coverage: CatalogueCoverage | null,
+): CatalogueData {
   const records = catalogue.records || [];
   return {
     stats,
+    coverage,
     records,
     byId: new Map(records.map((record) => [record.fileIdentifier, record])),
     facetsById: new Map(
@@ -81,9 +102,10 @@ export function CatalogueProvider({ children }: { children: ReactNode }) {
     Promise.all([
       fetchJSON<CatalogueStats>("stats.json"),
       fetchJSON<Catalogue>("catalogue.json"),
+      fetchOptionalJSON<CatalogueCoverage>("coverage.json"),
     ])
-      .then(([stats, catalogue]) => {
-        if (live) setState({ data: index(stats, catalogue), error: null });
+      .then(([stats, catalogue, coverage]) => {
+        if (live) setState({ data: index(stats, catalogue, coverage), error: null });
       })
       .catch((reason: unknown) => {
         if (live) {

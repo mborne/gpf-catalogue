@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Author: Claude (Anthropic) - this fixture is AI generated, see docs/init.md. -->
+<!-- Trimmed from https://data.geopf.fr/wfs?SERVICE=WFS&REQUEST=GetCapabilities,
+     which declares 813 feature types in 5.2 MB. Three are kept: one ordinary, one
+     whose title is padded with spaces the way the live service pads them, and one
+     published with no wfs:Name at all, which nothing can be matched against. -->
+<wfs:WFS_Capabilities version="2.0.0"
+    xmlns:wfs="http://www.opengis.net/wfs/2.0"
+    xmlns:ows="http://www.opengis.net/ows/1.1"
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+  <ows:ServiceIdentification>
+    <ows:Title>Service WFS de la Géoplateforme</ows:Title>
+  </ows:ServiceIdentification>
+  <FeatureTypeList xmlns="http://www.opengis.net/wfs/2.0">
+    <FeatureType>
+      <Name>BDTOPO_V3:batiment</Name>
+      <Title>BD TOPO® V3 batiment</Title>
+      <DefaultCRS>urn:ogc:def:crs:EPSG::4326</DefaultCRS>
+    </FeatureType>
+    <FeatureType>
+      <Name>OCS-GERS_BDD_LAMB93_2016:oscge_gers_32_2016</Name>
+      <Title> OCSGE Gers 2016 </Title>
+      <DefaultCRS>urn:ogc:def:crs:EPSG::2154</DefaultCRS>
+    </FeatureType>
+    <FeatureType>
+      <Title>A feature type published without a name</Title>
+    </FeatureType>
+  </FeatureTypeList>
+</wfs:WFS_Capabilities>

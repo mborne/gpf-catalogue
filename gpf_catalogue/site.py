@@ -1,7 +1,7 @@
 """Assembly of the static overview site.
 
-The site is a React application — `web/`, built by Vite — copied next to the two
-JSON documents it reads. Building it is therefore two steps: `npm run build` in
+The site is a React application — `web/`, built by Vite — copied next to the JSON
+documents it reads. Building it is therefore two steps: `npm run build` in
 `web/`, which produces `web/dist/`, then this module, which copies that output and
 the data beside it. `web/dist/` is rebuildable and gitignored, like `data/` and
 `site/`.
@@ -9,8 +9,13 @@ the data beside it. `web/dist/` is rebuildable and gitignored, like `data/` and
 What the build still guarantees is what it guaranteed when the page was three
 handwritten files: the result is **static**, self contained, and loads nothing from
 a network at runtime. React is bundled into the copied assets, not fetched from a
-CDN, and the only requests the page makes are for `catalogue.json` and
-`stats.json` beside it.
+CDN, and the only requests the page makes are for `catalogue.json`, `stats.json`
+and `coverage.json` beside it.
+
+`coverage.json` is the one document that may legitimately be absent: it needs the
+inventories of three services other than the CSW (`scripts/harvest_services.py`),
+and a run that never fetched them still produces a correct site — one that says the
+coverage was not measured, rather than one reporting zero.
 
 The catalogue is **copied** into the output rather than referenced through a
 relative path out of it, so that the directory can be moved, zipped or published on
@@ -28,6 +33,8 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from gpf_catalogue.coverage import compute_coverage, write_coverage
+from gpf_catalogue.inventory import read_inventories
 from gpf_catalogue.stats import compute_stats, load_records, write_stats
 from gpf_catalogue.storage import ROOT_DIR
 
@@ -48,6 +55,9 @@ CATALOGUE_NAME = "catalogue.json"
 #: Name the aggregates take inside the site.
 STATS_NAME = "stats.json"
 
+#: Name the service coverage takes inside the site, when it was measured at all.
+COVERAGE_NAME = "coverage.json"
+
 #: Entry document, and the one a static host serves for an unknown path.
 INDEX_NAME = "index.html"
 
@@ -65,12 +75,15 @@ class SiteReport:
 
     Attributes:
         records: Number of records the site describes.
+        services: Names of the services whose coverage was measured, empty when no
+            inventory was mirrored.
         output: Directory the site was written to.
         files: Paths of the files written, relative to `output`, in the order they
             were written.
     """
 
     records: int = 0
+    services: list[str] = field(default_factory=list)
     output: Path = ROOT_DIR
     files: list[str] = field(default_factory=list)
 
@@ -110,6 +123,7 @@ def build_site(
     catalogue_path: Path,
     output_dir: Path | None = None,
     assets_dir: Path | None = None,
+    services_dir: Path | None = None,
 ) -> SiteReport:
     """Build the static overview site from an aggregated catalogue.
 
@@ -118,6 +132,11 @@ def build_site(
         output_dir: Where to write the site. Defaults to `site/` at the repository
             root.
         assets_dir: The built front end to copy. Defaults to `web/dist`.
+        services_dir: The mirrored service inventories to measure the coverage
+            against. `None`, the default, measures nothing: the coverage is the
+            one figure that depends on data outside `data/csw`, so the caller says
+            where it is rather than the library reaching for it. A directory
+            holding no inventory is the same as none at all.
 
     Returns:
         A report of what was written.
@@ -153,6 +172,24 @@ def build_site(
     report.files.append(CATALOGUE_NAME)
     write_stats(stats, target / STATS_NAME)
     report.files.append(STATS_NAME)
+
+    # Left over from a previous build, the old coverage would be served beside a
+    # catalogue it no longer describes. Removed before it is possibly rewritten.
+    (target / COVERAGE_NAME).unlink(missing_ok=True)
+    if services_dir is not None:
+        inventories, missing = read_inventories(services_dir)
+        if inventories:
+            coverage = compute_coverage(records, inventories)
+            write_coverage(coverage, target / COVERAGE_NAME)
+            report.files.append(COVERAGE_NAME)
+            report.services = [inventory.service for inventory in inventories]
+        if missing:
+            logger.warning(
+                "no inventory for %s in %s: run scripts/harvest_services.py to "
+                "measure the coverage of those services",
+                ", ".join(missing),
+                services_dir,
+            )
 
     logger.info("wrote %s (%d records)", target, len(records))
     return report

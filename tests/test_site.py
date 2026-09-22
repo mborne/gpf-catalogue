@@ -20,6 +20,7 @@ import pytest
 from gpf_catalogue.model import CatalogueRecord, Link, LinkType, ResourceType
 from gpf_catalogue.parse import write_catalogue
 from gpf_catalogue.site import DEFAULT_ASSETS_DIR, build_site
+from gpf_catalogue.storage import service_page_path
 
 
 @pytest.fixture
@@ -56,6 +57,15 @@ def assets(tmp_path):
     (dist / "assets" / "index-aaa.js").write_text("/* bundle */", encoding="utf-8")
     (dist / "assets" / "index-aaa.css").write_text("/* styles */", encoding="utf-8")
     return dist
+
+
+@pytest.fixture
+def services(sample, tmp_path):
+    """A mirrored WFS inventory, the way `scripts/harvest_services.py` writes it."""
+    directory = tmp_path / "services"
+    directory.mkdir()
+    service_page_path(directory, "wfs", 1).write_bytes(sample("wfs-capabilities.xml"))
+    return directory
 
 
 @pytest.fixture
@@ -203,8 +213,62 @@ def test_the_built_application_declares_every_route(built):
         path.read_text(encoding="utf-8")
         for path in sorted((built / "assets").glob("*.js"))
     )
-    for route in ("overview", "records", "records/:fileIdentifier", "quality", "about"):
+    routes = (
+        "overview",
+        "records",
+        "records/:fileIdentifier",
+        "quality",
+        "coverage",
+        "coverage/:service",
+        "about",
+    )
+    for route in routes:
         assert route in bundle, route
+
+
+def test_the_coverage_is_published_when_the_inventories_were_mirrored(
+    catalogue, assets, services, tmp_path
+):
+    """The site carries what it needs; `/coverage` fetches nothing from a service."""
+    report = build_site(
+        catalogue,
+        output_dir=tmp_path / "site",
+        assets_dir=assets,
+        services_dir=services,
+    )
+
+    assert report.services == ["wfs"]
+    published = json.loads(
+        (tmp_path / "site" / "coverage.json").read_text(encoding="utf-8")
+    )
+    assert published["records"] == 2
+    assert published["services"][0]["published"] == 2
+    # `SAMPLE` links the WFS endpoint without naming a feature type, so it claims
+    # nothing: the whole inventory is uncovered.
+    assert published["services"][0]["covered"] == 0
+
+
+def test_a_site_built_without_inventories_is_still_a_site(catalogue, assets, tmp_path):
+    """The coverage needs three services other than the CSW, and they can be down.
+
+    A build that never fetched them publishes no `coverage.json` at all, so the page
+    says the coverage was not measured rather than reporting zero of everything.
+    """
+    report = build_site(catalogue, output_dir=tmp_path / "site", assets_dir=assets)
+
+    assert report.services == []
+    assert "coverage.json" not in report.files
+    assert not (tmp_path / "site" / "coverage.json").exists()
+
+
+def test_a_stale_coverage_is_not_left_behind(catalogue, assets, services, tmp_path):
+    """Served beside a catalogue it no longer describes, it would be a wrong figure."""
+    target = tmp_path / "site"
+    build_site(catalogue, output_dir=target, assets_dir=assets, services_dir=services)
+
+    build_site(catalogue, output_dir=target, assets_dir=assets)
+
+    assert not (target / "coverage.json").exists()
 
 
 def test_a_missing_catalogue_is_reported_rather_than_built_around(assets, tmp_path):

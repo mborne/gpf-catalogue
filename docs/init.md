@@ -119,12 +119,15 @@ themselves and not only in the README, every generated file carries an author li
 | HTML, CSS, TypeScript and TSX (`web/`) | a comment on the first line, below the doctype for HTML |
 | `web/package.json`, `web/tsconfig.json` | JSON has no comment syntax: `package.json` declares `author` / `contributors`, `tsconfig.json` carries a `"//"` key |
 | GitHub Actions workflows (`.github/workflows/*.yml`) | a header comment, above the `name:` key |
-| `tests/data/dataset.xml`, `no-title.xml`, `anchor-no-scope.xml` | an XML comment |
+| `tests/data/*.xml`, except the verbatim one below | an XML comment |
 
 Five files carry none, on purpose:
 
 - `tests/data/GeoPF_Altimetrie.xml` — a record served verbatim by the Géoplateforme. It was
-  not authored here, and the point of the fixture is that it is what the service sent.
+  not authored here, and the point of the fixture is that it is what the service sent. The
+  four service inventory fixtures beside it — `wfs-capabilities.xml`,
+  `wmts-capabilities.xml` and `download-feed-{01,02}.xml` — *are* attributed: they were
+  trimmed, reordered and commented here, so they are written rather than received.
 - `LICENSE` — MIT boilerplate. Copyright and ownership are the maintainer's, not Claude's.
 - `uv.lock` — resolved by uv, not written here.
 - `web/package-lock.json` — resolved by npm, for the same reason.
