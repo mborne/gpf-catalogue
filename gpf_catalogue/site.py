@@ -124,6 +124,7 @@ def build_site(
     output_dir: Path | None = None,
     assets_dir: Path | None = None,
     services_dir: Path | None = None,
+    built_at: str | None = None,
 ) -> SiteReport:
     """Build the static overview site from an aggregated catalogue.
 
@@ -137,6 +138,13 @@ def build_site(
             one figure that depends on data outside `data/csw`, so the caller says
             where it is rather than the library reaching for it. A directory
             holding no inventory is the same as none at all.
+        built_at: Date this build is running, ISO 8601, shown by the overview next
+            to the record count. `None`, the default, shows nothing: the Pages
+            workflow runs weekly, so a build with no date would otherwise let a
+            week-old mirror look like it was just measured. Read from the clock
+            by `scripts/build_site.py`, never by this function, so `build_site()`
+            stays a function of its arguments — two calls with the same
+            `built_at` write the same `stats.json`.
 
     Returns:
         A report of what was written.
@@ -160,7 +168,9 @@ def build_site(
     target.mkdir(parents=True, exist_ok=True)
 
     source, records = load_records(catalogue_path)
-    stats = compute_stats(records, source=source or "https://data.geopf.fr/csw")
+    stats = compute_stats(
+        records, source=source or "https://data.geopf.fr/csw", built_at=built_at
+    )
 
     report = SiteReport(records=len(records), output=target)
     report.files.extend(_copy_assets(assets, target))

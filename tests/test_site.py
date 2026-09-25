@@ -128,6 +128,8 @@ def test_the_statistics_describe_the_catalogue(catalogue, assets, tmp_path):
 
     assert stats["count"] == 2
     assert stats["source"] == "https://data.geopf.fr/csw"
+    # No date was given, so none is fabricated from the clock.
+    assert stats["builtAt"] is None
     # The records page filters on these, so they must be there rather than
     # recomputed in the browser.
     facets = {item["fileIdentifier"]: item for item in stats["recordFacets"]}
@@ -136,12 +138,24 @@ def test_the_statistics_describe_the_catalogue(catalogue, assets, tmp_path):
     assert facets["OTHER"]["publisher"] is None
 
 
+def test_the_build_date_is_carried_through_when_given(catalogue, assets, tmp_path):
+    """The overview shows how stale a weekly rebuild may be; nothing computes it here."""
+    build_site(
+        catalogue, output_dir=tmp_path / "site", assets_dir=assets, built_at="2026-09-26"
+    )
+    stats = json.loads((tmp_path / "site" / "stats.json").read_text(encoding="utf-8"))
+
+    assert stats["builtAt"] == "2026-09-26"
+
+
 def test_two_builds_are_byte_identical(catalogue, assets, tmp_path):
-    """No timestamp anywhere, so a diff between two builds is a real change."""
+    """Same arguments in, same bytes out — `built_at` included, since it is never
+    read from the clock inside `build_site()` itself.
+    """
     first = tmp_path / "first"
     second = tmp_path / "second"
-    build_site(catalogue, output_dir=first, assets_dir=assets)
-    build_site(catalogue, output_dir=second, assets_dir=assets)
+    build_site(catalogue, output_dir=first, assets_dir=assets, built_at="2026-09-26")
+    build_site(catalogue, output_dir=second, assets_dir=assets, built_at="2026-09-26")
 
     for name in ("index.html", "404.html", "catalogue.json", "stats.json"):
         assert (first / name).read_bytes() == (second / name).read_bytes()

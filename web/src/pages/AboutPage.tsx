@@ -63,8 +63,9 @@ export function AboutPage(): JSX.Element {
         <p className="prose-p">
           The mirror is rebuilt <strong>once a week</strong>, so every figure on this
           site lags behind the live service by up to seven days
-          {data ? ` — ${fmt(data.stats.count)} resources at the last rebuild` : ""}. A
-          record published, corrected or withdrawn since then is not reflected here.
+          {data ? ` — ${fmt(data.stats.count)} resources at the last rebuild` : ""}
+          {data?.stats.builtAt ? `, on ${data.stats.builtAt}` : ""}. A record
+          published, corrected or withdrawn since then is not reflected here.
         </p>
         <p className="prose-p">
           The conversion is lossy by design, and a few records never make it through at
