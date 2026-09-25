@@ -58,6 +58,11 @@ export function RecordPage(): JSX.Element {
           </span>
         ) : null}
         {record.suspectedTest ? <span className="badge warn">suspected test</span> : null}
+        {record.revised ? (
+          <span className="record-date" title="last revision date published by the catalogue">
+            {`updated ${record.revised}`}
+          </span>
+        ) : null}
         <code className="record-id">{record.fileIdentifier}</code>
       </p>
       <RecordDetail record={record} facets={facets} />

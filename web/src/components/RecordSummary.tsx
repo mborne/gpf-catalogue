@@ -57,6 +57,15 @@ export function RecordSummary({ record }: { record: CatalogueRecord }): JSX.Elem
       {record.suspectedTest ? (
         <span className="badge warn">suspected test</span>
       ) : null}
+      {/* The catalogue's own "last revision" date — not shown when the record
+          states none, the same way `spatialScope` above shows nothing on the 190
+          records that cite no scope. Fabricating "updated" from `created` or
+          `published` would claim a revision the record never declared. */}
+      {record.revised ? (
+        <span className="record-date" title="last revision date published by the catalogue">
+          {`updated ${record.revised}`}
+        </span>
+      ) : null}
       {/* The protocols go on a line of their own: a record offering seven of them
           pushed the title, the type and the scope off the first line, so the row
           no longer started with what identifies it. */}
