@@ -439,6 +439,7 @@ figcaption { margin-bottom: 12px; }
 .record-title { font-weight: 600; }
 .record-title.untitled { color: var(--muted); font-weight: 400; font-style: italic; }
 .record-id { color: var(--muted); font-size: 0.78rem; font-family: ui-monospace, monospace; }
+.record-date { color: var(--muted); font-size: 0.78rem; }
 
 /* --- coverage ------------------------------------------------------------- */
 
