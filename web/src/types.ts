@@ -125,6 +125,8 @@ export interface QualityStats {
 export interface CatalogueStats {
   source: string;
   count: number;
+  /** Date the site was built, ISO 8601. `null` on a local build with no date given. */
+  builtAt: string | null;
   byType: Count[];
   byTopicCategory: Count[];
   byInspireTheme: Count[];

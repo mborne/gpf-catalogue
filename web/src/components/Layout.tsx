@@ -62,7 +62,8 @@ export function Layout(): JSX.Element {
             </h1>
             <p className="subtitle">
               {data
-                ? `${fmt(data.stats.count)} resources harvested from ${data.stats.source}`
+                ? `${fmt(data.stats.count)} resources harvested from ${data.stats.source}` +
+                  (data.stats.builtAt ? ` (last update: ${data.stats.builtAt})` : "")
                 : "Loading…"}
             </p>
           </div>

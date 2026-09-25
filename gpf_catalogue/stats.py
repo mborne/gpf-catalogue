@@ -161,12 +161,24 @@ class RecordFacets(BaseRecordModel):
 class CatalogueStats(BaseRecordModel):
     """Everything the overview displays, computed once from the pivot catalogue.
 
-    The document carries no timestamp on purpose, so that two runs over the same
-    catalogue are byte identical and a change is a real change.
+    Every other field here is a pure function of `records`, so two calls made
+    with the same records and the same `built_at` are byte identical — `built_at`
+    itself is never read from the clock inside this module: it is a value the
+    caller (the weekly Pages workflow, through `build_site()`) passes in, which is
+    what keeps `compute_stats()` itself free of I/O and of the wall clock.
     """
 
     source: str = Field(description="CSW service the catalogue was harvested from.")
     count: int = Field(description="Number of records the statistics cover.")
+    built_at: str | None = Field(
+        default=None,
+        description=(
+            "Date the site was built, ISO 8601, as passed to `compute_stats()`. "
+            "Not a measurement of the catalogue: the mirror it describes may be "
+            "up to a week old, since the Pages workflow re-harvests weekly. Null "
+            "when the caller did not state one, e.g. in a local build."
+        ),
+    )
 
     by_type: list[Count] = Field(description="Records per resource type.")
     by_topic_category: list[Count] = Field(
@@ -295,15 +307,20 @@ def publication_year(record: CatalogueRecord) -> str | None:
 def compute_stats(
     records: list[CatalogueRecord],
     source: str = "https://data.geopf.fr/csw",
+    built_at: str | None = None,
 ) -> CatalogueStats:
     """Aggregate a pivot catalogue.
 
-    Pure: no I/O, no network, no mutation of the records.
+    Pure: no I/O, no network, no mutation of the records, and no clock read here
+    — `built_at` is carried straight through to the output, so the same
+    arguments always produce the same statistics.
 
     Args:
         records: The pivot records to aggregate.
         source: CSW service the records were harvested from, carried through to
             the output so the statistics say what they describe.
+        built_at: Date the site is being built, ISO 8601, carried through
+            unchanged. `None` when the caller has none to give.
 
     Returns:
         Every aggregate the overview displays.
@@ -393,6 +410,7 @@ def compute_stats(
     return CatalogueStats(
         source=source,
         count=total,
+        built_at=built_at,
         by_type=_ranked(by_type),
         by_topic_category=_ranked(by_topic),
         by_inspire_theme=_ranked(by_theme),
@@ -466,8 +484,9 @@ def load_records(path: Path) -> tuple[str, list[CatalogueRecord]]:
 def write_stats(stats: CatalogueStats, path: Path) -> None:
     """Write the aggregates as a JSON document.
 
-    Like `catalogue.json`, the output carries no timestamp: two runs over the same
-    catalogue produce the same bytes.
+    Two calls to `compute_stats()` with the same records and the same `built_at`
+    produce the same bytes, unlike `catalogue.json`, which carries no `built_at`
+    at all — see `CatalogueStats.built_at`.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(

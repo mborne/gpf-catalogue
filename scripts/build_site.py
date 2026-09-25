@@ -20,6 +20,7 @@ Examples:
 # Author: Claude (Anthropic) — this file is AI generated, see docs/init.md.
 
 import argparse
+from datetime import UTC, datetime
 from pathlib import Path
 
 from gpf_catalogue.cli import add_common_arguments, configure_logging
@@ -60,6 +61,11 @@ def main() -> int:
         help="mirrored service inventories to measure the coverage against "
         "(default: %(default)s; holding none means no coverage.json)",
     )
+    parser.add_argument(
+        "--built-at",
+        help="date to show as the overview's own build date, ISO 8601 "
+        "(default: today, in UTC; pass an empty string to show none)",
+    )
     args = parser.parse_args()
     configure_logging(args.verbose)
 
@@ -67,15 +73,25 @@ def main() -> int:
     if not catalogue.is_file():
         raise SystemExit(f"{catalogue} not found, run 'uv run scripts/parse.py' first")
 
+    # Read here, not inside gpf_catalogue.site: build_site() stays a function of
+    # its arguments, and this is the one place allowed to read the clock.
+    built_at = args.built_at
+    if built_at is None:
+        built_at = datetime.now(UTC).date().isoformat()
+    elif built_at == "":
+        built_at = None
+
     report = build_site(
         catalogue,
         output_dir=args.output,
         assets_dir=args.assets,
         services_dir=args.services_dir,
+        built_at=built_at,
     )
 
     print("=== Site summary ===")
     print(f"records     : {report.records}")
+    print(f"built at    : {built_at or 'not stated'}")
     print(f"coverage    : {', '.join(report.services) or 'not measured'}")
     print(f"files       : {len(report.files)}")
     for name in report.files:

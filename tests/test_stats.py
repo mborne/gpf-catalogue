@@ -307,6 +307,12 @@ def test_stats_are_written_in_camel_case(tmp_path):
     assert "missingTitle" in payload["quality"]
 
 
+def test_built_at_is_carried_through_but_never_invented():
+    """`compute_stats()` never reads the clock; the caller states a date or none."""
+    assert compute_stats([record()]).built_at is None
+    assert compute_stats([record()], built_at="2026-09-26").built_at == "2026-09-26"
+
+
 def test_stats_are_byte_stable_across_runs(tmp_path):
     """No timestamp, stable ordering: a change in `stats.json` is a real change."""
     records = [record("a", topic_categories=["x"]), record("b", topic_categories=["y"])]
