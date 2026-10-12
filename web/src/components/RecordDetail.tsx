@@ -5,6 +5,7 @@ import { useMemo, type JSX, type ReactNode } from "react";
 import { cartesGouvUrl, cmp, cswUrl, fmt } from "../format";
 import { Markdown } from "../markdown";
 import type { CatalogueRecord, Link, RecordFacets } from "../types";
+import { Heading } from "./Heading";
 
 function Pair({ term, value }: { term: string; value: ReactNode }): JSX.Element | null {
   if (!value) return null;
@@ -132,7 +133,9 @@ export function RecordDetail({
           already fully described by the bounding box above. */}
       {record.extents.length > 1 ? (
         <>
-          <h3 className="section-title">{`Extents (${fmt(record.extents.length)})`}</h3>
+          <Heading level={3} id="extents" className="section-title">
+            {`Extents (${fmt(record.extents.length)})`}
+          </Heading>
           <p className="caption">
             The bounding box above is the union of these. It can be far larger than
             what the resource covers.
@@ -164,17 +167,18 @@ export function RecordDetail({
 
       {record.links.length ? (
         <>
-          <h3 className="section-title">
+          <Heading level={3} id="links" className="section-title">
             {`Access links (${fmt(record.links.length)})`}
-          </h3>
+          </Heading>
           {groups.map((group) => (
             <section key={group.type}>
-              <h4 className="link-group">
+              {/* The protocol is the fragment: `#wfs` cites the WFS layers. */}
+              <Heading level={4} id={group.type} className="link-group">
                 {group.type}
                 <span className="link-group-count">
                   {`(${fmt(group.entries.length)})`}
                 </span>
-              </h4>
+              </Heading>
               <div className="table-wrap">
                 <table className="table links-table">
                   <thead>

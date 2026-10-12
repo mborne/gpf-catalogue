@@ -11,6 +11,7 @@ import { Link } from "react-router";
 import { fmt, recordPath, share } from "../format";
 import type { ServiceCoverage } from "../types";
 import { BarChart } from "./Chart";
+import { Heading } from "./Heading";
 
 /** The share as a number, for a bar whose axis is a full 100 rather than a count. */
 export function percent(count: number, total: number): number {
@@ -118,9 +119,9 @@ function Rows({
 export function UncoveredList({ service }: { service: ServiceCoverage }): JSX.Element {
   return (
     <section className="card">
-      <h2>
+      <Heading level={2} id="uncovered">
         {fmt(service.uncovered.length)} {service.label} no record describes
-      </h2>
+      </Heading>
       <p className="caption">
         In the order the service lists them — a capabilities groups related entries,
         and that grouping is a reading aid it already produced.
@@ -141,7 +142,9 @@ export function UncoveredList({ service }: { service: ServiceCoverage }): JSX.El
 export function UnknownList({ service }: { service: ServiceCoverage }): JSX.Element {
   return (
     <section className="card">
-      <h2>{fmt(service.unknown.length)} cited by a record, served by no one</h2>
+      <Heading level={2} id="unknown">
+        {fmt(service.unknown.length)} cited by a record, served by no one
+      </Heading>
       <p className="caption">
         The record names it, the service does not publish it: a withdrawn layer, a
         record that was not updated, or an endpoint the public capabilities does not

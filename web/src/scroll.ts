@@ -8,6 +8,57 @@ import { useLocation, useNavigationType } from "react-router";
    a fresh set of entries anyway. */
 const positions = new Map<string, number>();
 
+/** How long a fragment waits for its heading: the catalogue is 1.2 MB to load. */
+const HASH_TIMEOUT = 10_000;
+
+/**
+ * Scroll to the element a fragment names, once it exists.
+ *
+ * A pasted `/records/IGNF_ADMIN-EXPRESS#wfs` loads a document with no record in
+ * it yet: the heading appears only once `catalogue.json` has arrived, which is
+ * long after the browser gave up looking for it. So the element is waited for,
+ * and the wait ends at the first scroll the reader makes, rather than yanking the
+ * page from under them. The sticky top bar is subtracted, or the heading would
+ * land underneath it.
+ *
+ * Returns a function cancelling the wait.
+ */
+function scrollToHash(hash: string): () => void {
+  let id: string;
+  try {
+    id = decodeURIComponent(hash.slice(1));
+  } catch {
+    id = hash.slice(1);
+  }
+
+  const go = (): boolean => {
+    const element = document.getElementById(id);
+    if (!element) return false;
+    const bar = document.querySelector(".topbar")?.getBoundingClientRect().height ?? 0;
+    const top = element.getBoundingClientRect().top + window.scrollY - bar - 8;
+    window.scrollTo(0, Math.max(0, top));
+    return true;
+  };
+  if (go()) return () => {};
+
+  const observer = new MutationObserver(() => {
+    if (go()) stop();
+  });
+  const timer = window.setTimeout(() => stop(), HASH_TIMEOUT);
+  const stop = () => {
+    observer.disconnect();
+    window.clearTimeout(timer);
+    window.removeEventListener("wheel", stop);
+    window.removeEventListener("touchmove", stop);
+    window.removeEventListener("keydown", stop);
+  };
+  observer.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener("wheel", stop, { passive: true });
+  window.addEventListener("touchmove", stop, { passive: true });
+  window.addEventListener("keydown", stop);
+  return stop;
+}
+
 /**
  * Put a new page at the top, and a page returned to back where it was left.
  *
@@ -17,7 +68,8 @@ const positions = new Map<string, number>();
  * beginning. The three cases are not the same move:
  *
  * - **PUSH** — a new page, so the top of it. Opening a record, or a service on
- *   the coverage page.
+ *   the coverage page. Unless the URL names a heading (`#wfs`): then that
+ *   heading, which is also what a pasted link to one gets on the first load.
  * - **POP** — a page already seen, so where it was left. Coming back from a
  *   record to the result list must land on the row that was clicked, not on the
  *   filters above it.
@@ -29,10 +81,14 @@ const positions = new Map<string, number>();
  * it restores against a document that had not rendered this route yet.
  */
 export function useScrollRestoration(): void {
-  const { key } = useLocation();
+  const { key, hash } = useLocation();
   const navigationType = useNavigationType();
   const scrollY = useRef(0);
   const current = useRef<string | null>(null);
+  // A wait for a heading belongs to one entry: the next navigation cancels it.
+  // Held in a ref rather than returned as the effect cleanup, because the effect
+  // returns early on a re-run for the same entry, and that would end the wait.
+  const cancel = useRef<() => void>(() => {});
 
   useEffect(() => {
     const previous = history.scrollRestoration;
@@ -61,14 +117,24 @@ export function useScrollRestoration(): void {
     if (current.current === key) return;
 
     // The first run is the document the browser just loaded: it is already
-    // placed, and a deep link that was pasted must not be scrolled off.
+    // placed, and a deep link that was pasted must not be scrolled off — except
+    // to the heading it names, which the browser could not find before render.
     const first = current.current === null;
     if (!first) positions.set(current.current as string, scrollY.current);
     current.current = key;
-    if (first || navigationType === "REPLACE") return;
+    cancel.current();
+    cancel.current = () => {};
+    if (navigationType === "REPLACE" && !first) return;
 
-    const target = navigationType === "POP" ? (positions.get(key) ?? 0) : 0;
+    const saved = navigationType === "POP" ? positions.get(key) : undefined;
+    if (saved === undefined && hash) {
+      cancel.current = scrollToHash(hash);
+      return;
+    }
+    if (first) return;
+
+    const target = saved ?? 0;
     window.scrollTo(0, target);
     scrollY.current = target;
-  }, [key, navigationType]);
+  }, [key, hash, navigationType]);
 }
