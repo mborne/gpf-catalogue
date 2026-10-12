@@ -5,6 +5,7 @@ import { Link } from "react-router";
 
 import { useCatalogue } from "../catalogue";
 import { BarChart, ChartCard } from "../components/Chart";
+import { Heading, slug } from "../components/Heading";
 import { fmt, recordPath } from "../format";
 import { usePageTitle } from "../title";
 
@@ -63,7 +64,7 @@ export function QualityPage(): JSX.Element {
       </ChartCard>
 
       <section className="card">
-        <h2>Anomaly counts</h2>
+        <Heading level={2} id={slug("Anomaly counts")}>Anomaly counts</Heading>
         <table className="table">
           <thead>
             <tr>
@@ -85,7 +86,7 @@ export function QualityPage(): JSX.Element {
       </section>
 
       <section className="card">
-        <h2>Records flagged as test publications</h2>
+        <Heading level={2} id={slug("Records flagged as test publications")}>Records flagged as test publications</Heading>
         <p className="caption">
           A narrow heuristic: the identifier, title or abstract is made only of test
           tokens, or the title starts with one. They are flagged and kept, never
@@ -101,7 +102,7 @@ export function QualityPage(): JSX.Element {
       </section>
 
       <section className="card">
-        <h2>What never reached this catalogue</h2>
+        <Heading level={2} id={slug("What never reached this catalogue")}>What never reached this catalogue</Heading>
         <p className="caption">
           Measured on the full run of 2026-09-20, against the live service — these
           counts come from the harvest, not from the catalogue below.

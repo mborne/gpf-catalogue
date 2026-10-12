@@ -177,9 +177,10 @@ corrupts the mirror.
   what makes a pasted link to a record boot the application. Do not "fix" the 404
   status of that first response — the document is right and the code is the host's.
 - **A route change decides where the page opens.** `web/src/scroll.ts` scrolls to the
-  top on PUSH, restores the remembered offset on POP so Back lands on the row that was
-  clicked, and moves nothing on REPLACE — a filter change replaces the entry, and the
-  page must not slide under someone typing. It sets `history.scrollRestoration =
+  top on PUSH — or to the heading a `#fragment` names, waiting for it to render, since a
+  pasted deep link arrives before `catalogue.json` does — restores the remembered offset
+  on POP so Back lands on the row that was clicked, and moves nothing on REPLACE — a
+  filter change replaces the entry, and the page must not slide under someone typing. It sets `history.scrollRestoration =
   "manual"`, because the browser restores against a document that had not rendered the
   route yet. It is called once, in `Layout`, since that is the component every route
   renders inside; a page calling it itself would be a page that can forget to.

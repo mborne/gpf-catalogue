@@ -10,6 +10,7 @@ import { Link } from "react-router";
 
 import { fmt, share } from "../format";
 import type { Count } from "../types";
+import { Heading, slug } from "./Heading";
 
 /** Values of a long tailed aggregate shown before the "show all" button. */
 export const TOP_N = 12;
@@ -18,9 +19,12 @@ export function ChartCard({
   title,
   caption,
   wide,
+  id,
   children,
 }: {
   title: string;
+  /** The fragment addressing the card; the title's slug by default. */
+  id?: string;
   caption?: ReactNode;
   wide?: boolean;
   children: ReactNode;
@@ -28,7 +32,9 @@ export function ChartCard({
   return (
     <figure className={wide ? "card chart wide" : "card chart"}>
       <figcaption>
-        <h2>{title}</h2>
+        <Heading level={2} id={id ?? slug(title)}>
+          {title}
+        </Heading>
         {caption ? <p className="caption">{caption}</p> : null}
       </figcaption>
       {children}

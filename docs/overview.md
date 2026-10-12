@@ -69,6 +69,18 @@ Two consequences are worth stating, because they are what the routes cost:
   no such convention, which is why `scripts/serve_site.py` exists: it serves the entry
   document for the application's routes and keeps a missing asset a real 404.
 
+A **section has an address too** ([issue #19](https://github.com/mborne/gpf-catalogue/issues/19)).
+Every section heading carries an `id` and a `#` link shown on hover, so a part of a page
+can be cited: `/records/IGNF_ADMIN-EXPRESS#wfs` opens the record on its WFS layers. On a
+record the fragments are `extents`, `links`, and the protocol of each link group — the
+same `wfs`, `wmts`, `download` a filter uses. Elsewhere a heading with a fixed text is
+addressed by its slug (`/about#source-code`, `/overview#by-publisher`), and one carrying
+a count — "298 WMTS layers no record describes" — by a fixed name (`#uncovered`,
+`#unknown`), so that an address does not change with the next harvest. The browser
+cannot honour a pasted fragment on its own: the heading only exists once
+`catalogue.json` has loaded, so `web/src/scroll.ts` waits for it, and gives up at the
+reader's first scroll.
+
 The record page is also where the search links to: a result row is a link, not a
 disclosure triangle. And on the dashboard, a bar whose value is a facet leads to the
 records it counts — `/records?type=service` — so a number on a chart became a question

@@ -22,6 +22,7 @@ import {
   percent,
   uncoveredCount,
 } from "../components/Coverage";
+import { Heading } from "../components/Heading";
 import { coveragePath, fmt, share } from "../format";
 import { usePageTitle } from "../title";
 import type { ServiceCoverage } from "../types";
@@ -31,10 +32,10 @@ function Service({ service }: { service: ServiceCoverage }): JSX.Element {
 
   return (
     <section className="card">
-      <h2>
+      <Heading level={2} id={service.service}>
         <Link to={coveragePath(service.service)}>{service.service.toUpperCase()}</Link>{" "}
         <span className="coverage-endpoint">{service.endpoint}</span>
-      </h2>
+      </Heading>
       <p className="caption">
         The service publishes {fmt(service.published)} {service.label}.{" "}
         {fmt(service.covered)} of them — {share(service.covered, service.published)} —
@@ -113,7 +114,9 @@ export function CoveragePage(): JSX.Element {
           ))}
 
           <section className="card">
-            <h2>How a layer is matched to a record</h2>
+            <Heading level={2} id="matching">
+              How a layer is matched to a record
+            </Heading>
             <p className="caption">
               Nothing in the catalogue states which record describes which layer:{" "}
               <code>srv:operatesOn</code> and <code>mdb:parentMetadata</code> appear

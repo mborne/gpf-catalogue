@@ -642,3 +642,21 @@ figcaption { margin-bottom: 12px; }
   :root { --gutter: 14px; }
   .hero-value { font-size: 44px; }
 }
+
+/* A heading that can be cited by its fragment (issue #19). The `#` stays out of
+   the way until the heading is pointed at or focused, and is always there on a
+   touch screen, where nothing is ever pointed at. */
+.anchored .anchor {
+  margin-left: 6px;
+  font-family: ui-monospace, monospace;
+  font-weight: 400;
+  color: var(--muted);
+  text-decoration: none;
+  opacity: 0;
+}
+.anchored:hover .anchor,
+.anchored .anchor:focus-visible { opacity: 1; }
+.anchored .anchor:hover { color: var(--bar); }
+@media (hover: none) {
+  .anchored .anchor { opacity: 0.6; }
+}
